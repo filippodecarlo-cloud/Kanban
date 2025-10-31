@@ -233,8 +233,9 @@ export default function App() {
         setConfig(prev => ({ ...prev, [id]: numericValue }));
         if (isRunning) {
             setIsRunning(false);
+            setNeedsReset(true); // Only set needsReset if was running
         }
-        setNeedsReset(true);
+        // If paused, allow config changes without requiring reset
     };
     
     const handleReset = () => {
@@ -243,7 +244,8 @@ export default function App() {
     };
 
     const handleStartPause = () => {
-        if (needsReset || isAnimating) return;
+        if (needsReset) return;
+        // Allow pausing even during animations - will stop at next tick
         setIsRunning(prev => !prev);
     };
 
@@ -1000,6 +1002,7 @@ export default function App() {
             <header className="bg-white p-6 rounded-lg shadow-md mb-4">
                 <h1 className="text-3xl font-bold text-gray-800">Dynamic Kanban System</h1>
                 <p className="text-gray-600 mt-1">Observe flow and WIP by adjusting system parameters.</p>
+                <p className="text-gray-500 mt-1 text-sm">Operations management and Lean Production - Filippo De Carlo</p>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
                     {/* Main Controls */}
@@ -1009,7 +1012,7 @@ export default function App() {
                              <button onClick={handleStepBackward} disabled={isRunning || isAnimating || history.length === 0} className="px-4 py-2 rounded-md font-semibold bg-gray-500 text-white hover:bg-gray-600 transition-transform hover:scale-105 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:scale-100">
                                 ◀ Step
                             </button>
-                            <button onClick={handleStartPause} disabled={needsReset || isAnimating} className={`px-4 py-2 rounded-md font-semibold text-white transition-transform hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:scale-100 ${isRunning ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}>
+                            <button onClick={handleStartPause} disabled={needsReset} className={`px-4 py-2 rounded-md font-semibold text-white transition-transform hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:scale-100 ${isRunning ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}>
                                 {isRunning ? '⏸ Pause' : '▶ ' + (simTime > 0 ? 'Resume' : 'Start')}
                             </button>
                             <button onClick={handleStepForward} disabled={isRunning || isAnimating} className="px-4 py-2 rounded-md font-semibold bg-blue-500 text-white hover:bg-blue-600 transition-transform hover:scale-105 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:scale-100">
@@ -1022,7 +1025,7 @@ export default function App() {
                     <div className="bg-gray-50 p-4 rounded-lg border lg:col-span-2">
                         <h3 className="font-semibold text-gray-700 mb-3">Configuration</h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-x-4 gap-y-2 text-sm">
-                            {[ {id: 'cycleTimeA1', label: 'T Ciclo A1 (s)'}, {id: 'cycleTimeA2', label: 'T Ciclo A2 (s)'}, {id: 'cycleTimeP', label: 'T Ciclo P (s)'}, {id: 'moveTimeM', label: 'T Spost. M (s)'}, {id: 'actionTimeM', label: 'T Azione M (s)'}, {id: 'numKanbanPairsA1', label: '# Kanban Pairs A1'}, {id: 'numKanbanPairsA2', label: '# Kanban Pairs A2'} ].map(c => (
+                            {[ {id: 'cycleTimeA1', label: 'Cycle Time A1 (s)'}, {id: 'cycleTimeA2', label: 'Cycle Time A2 (s)'}, {id: 'cycleTimeP', label: 'Cycle Time P (s)'}, {id: 'moveTimeM', label: 'Move Time M (s)'}, {id: 'actionTimeM', label: 'Action Time M (s)'}, {id: 'numKanbanPairsA1', label: '# Kanban Pairs A1'}, {id: 'numKanbanPairsA2', label: '# Kanban Pairs A2'} ].map(c => (
                                 <div key={c.id}>
                                     <label htmlFor={c.id} className="block text-gray-600">{c.label}</label>
                                     <input type="number" id={c.id} value={config[c.id as keyof Config]} onChange={handleConfigChange} min="1" step="1" className="w-full p-1.5 border rounded-md" disabled={isRunning} />
