@@ -183,7 +183,8 @@ export default function App() {
                 pOut: { fullA1: 0, fullA2: 0 },
                 heijunka: [], // Start with empty Heijunka box
             },
-            m: { status: M_Status.IDLE, timer: 0, task: null, carrying: null }
+            m: { status: M_Status.IDLE, timer: 0, task: null, carrying: null },
+            deliveryQueue: [] // FIFO queue for delivery requests
         });
         const totalWIP = (numA1Pairs + numA2Pairs) * 2;
         setStats({ totalWIP: totalWIP, totalThroughput: 0, starvedTimeA1: 0, starvedTimeA2: 0, workingTimeA1: 0, workingTimeA2: 0, workingTimeP: 0, throughputA1: 0, throughputA2: 0, throughputP: 0 });
@@ -267,8 +268,32 @@ export default function App() {
         if (!item) return null;
         if(itemType === 'kanbanP') return <MiniKanban type={item.product} />;
         if(itemType === 'kanbanW') return <div className={`w-[22px] h-[18px] rounded-sm border-[1.5px] text-white text-[8px] font-bold flex items-center justify-center shadow-md ${item.product === 'A2' ? 'bg-gradient-to-br from-blue-600 to-blue-400 border-blue-800' : 'bg-gradient-to-br from-cyan-500 to-cyan-300 border-cyan-700'}`}>W</div>;
-        
+
         const carrying = item as CarryingItem;
+        const count = carrying.count || 1;
+
+        // For batch operations, show stacked containers
+        if (count > 1) {
+            const containers = [];
+            for (let i = 0; i < Math.min(count, 5); i++) { // Show max 5 visually
+                containers.push(
+                    <div key={i} className="absolute" style={{ transform: `translate(${i * 8}px, ${-i * 6}px)`, zIndex: count - i }}>
+                        {carrying.type === 'Full' ? <ContainerVisual type={carrying.product} withWKanban /> :
+                         carrying.type === 'Finished' ? <ContainerVisual type={carrying.product} withPKanban={carrying.hasPKanban} /> :
+                         <ContainerVisual type={carrying.product} empty withWKanban />}
+                    </div>
+                );
+            }
+            return (
+                <div className="relative flex items-center">
+                    {containers}
+                    {count > 5 && <div className="absolute top-0 right-0 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center" style={{transform: 'translate(60px, -10px)', zIndex: 100}}>+{count - 5}</div>}
+                    {count <= 5 && count > 1 && <div className="absolute top-0 right-0 bg-blue-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center" style={{transform: 'translate(60px, -10px)', zIndex: 100}}>{count}</div>}
+                </div>
+            );
+        }
+
+        // Single item
         if(carrying.type === 'Full') return <ContainerVisual type={carrying.product} withWKanban />;
         if(carrying.type === 'Finished') return <ContainerVisual type={carrying.product} withPKanban={carrying.hasPKanban} />;
         return <ContainerVisual type={carrying.product} empty={carrying.type === 'Empty'} withWKanban={carrying.type === 'Empty'} />;
@@ -355,6 +380,8 @@ export default function App() {
                 newState.a1.producingType = null;
                 newStats.throughputA1++;
                 setA1Animation(a => ({...a, visible: false}));
+                // Add to delivery queue for FIFO refill
+                newState.deliveryQueue.push('A1');
             }
         } else { // If not working (Idle or Starved), check for materials
             if (newState.locations.a1In.fullA1 > 0) {
@@ -408,6 +435,8 @@ export default function App() {
                 newState.a2.producingType = null;
                 newStats.throughputA2++;
                 setA2Animation(a => ({...a, visible: false}));
+                // Add to delivery queue for FIFO refill
+                newState.deliveryQueue.push('A2');
             }
         } else { // If not working (Idle or Starved), check for materials
             if (newState.locations.a2In.fullA2 > 0) {
@@ -513,14 +542,24 @@ export default function App() {
                  const pInHasEmptyA1WithW = newState.locations.pIn.emptyA1WithW > 0;
                  const pInHasEmptyA2WithW = newState.locations.pIn.emptyA2WithW > 0;
 
+                 // Priority 1: Starved stations (emergency)
                  if (newState.a1.status === 'Starved' && newState.locations.pOut.fullA1 > 0) nextTask = { type: M_Tasks.DELIVER_FULL, product: 'A1' };
                  else if (newState.a2.status === 'Starved' && newState.locations.pOut.fullA2 > 0) nextTask = { type: M_Tasks.DELIVER_FULL, product: 'A2' };
+                 // Priority 2: Process finished items
                  else if (newState.locations.pFinished.finishedA1 > 0 && pInHasEmptyA1WithW) nextTask = { type: M_Tasks.PROCESS_FINISHED, product: 'A1' };
                  else if (newState.locations.pFinished.finishedA2 > 0 && pInHasEmptyA2WithW) nextTask = { type: M_Tasks.PROCESS_FINISHED, product: 'A2' };
+                 // Priority 3: Fetch empty containers (batch pickup)
                  else if (newState.a1.kanbanWaiting > 0) nextTask = { type: M_Tasks.FETCH_EMPTY, product: 'A1' };
                  else if (newState.a2.kanbanWaiting > 0) nextTask = { type: M_Tasks.FETCH_EMPTY, product: 'A2' };
-                 else if (newState.locations.pOut.fullA1 > 0) nextTask = { type: M_Tasks.DELIVER_FULL, product: 'A1' };
-                 else if (newState.locations.pOut.fullA2 > 0) nextTask = { type: M_Tasks.DELIVER_FULL, product: 'A2' };
+                 // Priority 4: Deliver full containers (FIFO from deliveryQueue)
+                 else if (newState.deliveryQueue.length > 0) {
+                     const nextStation = newState.deliveryQueue[0];
+                     const hasFullA1 = nextStation === 'A1' && newState.locations.pOut.fullA1 > 0;
+                     const hasFullA2 = nextStation === 'A2' && newState.locations.pOut.fullA2 > 0;
+                     if (hasFullA1 || hasFullA2) {
+                         nextTask = { type: M_Tasks.DELIVER_FULL, product: nextStation };
+                     }
+                 }
 
                  if (nextTask) {
                      m.task = nextTask;
@@ -566,24 +605,32 @@ export default function App() {
                  switch(m.status) {
                      case M_Status.PICKING_A1_EMPTY:
                         if(newState.locations.a1Out.emptyA1 > 0) {
-                            newState.locations.a1Out.emptyA1--; newState.a1.kanbanWaiting--;
-                            m.carrying = { type: 'Empty', product: 'A1' };
+                            // Batch pickup: take ALL empty containers
+                            const count = newState.locations.a1Out.emptyA1;
+                            newState.locations.a1Out.emptyA1 = 0;
+                            newState.a1.kanbanWaiting = 0;
+                            m.carrying = { type: 'Empty', product: 'A1', count };
                             nextMoveStatus = M_Status.MOVING_TO_P_IN_WITH_EMPTY;
                             itemForAnimation = m.carrying;
                         } else taskFinished = true;
                         break;
                      case M_Status.PICKING_A2_EMPTY:
                          if (newState.locations.a2Out.emptyA2 > 0) {
-                             newState.locations.a2Out.emptyA2--; newState.a2.kanbanWaiting--;
-                             m.carrying = { type: 'Empty', product: 'A2' };
+                             // Batch pickup: take ALL empty containers
+                             const count = newState.locations.a2Out.emptyA2;
+                             newState.locations.a2Out.emptyA2 = 0;
+                             newState.a2.kanbanWaiting = 0;
+                             m.carrying = { type: 'Empty', product: 'A2', count };
                              nextMoveStatus = M_Status.MOVING_TO_P_IN_WITH_EMPTY;
                              itemForAnimation = m.carrying;
                          } else taskFinished = true;
                          break;
                      case M_Status.DROPPING_EMPTY:
-                         if (m.carrying?.product === 'A1') newState.locations.pIn.emptyA1WithW++;
-                         else newState.locations.pIn.emptyA2WithW++;
-                         m.carrying = null; 
+                         // Batch drop: deposit all carried containers
+                         const countToDrop = m.carrying?.count || 1;
+                         if (m.carrying?.product === 'A1') newState.locations.pIn.emptyA1WithW += countToDrop;
+                         else newState.locations.pIn.emptyA2WithW += countToDrop;
+                         m.carrying = null;
                          taskFinished = true;
                          break;
                     case M_Status.PICKING_FINISHED:
@@ -666,6 +713,10 @@ export default function App() {
                         const targetLoc = m.task!.product === 'A1' ? newState.locations.a1In : newState.locations.a2In;
                         targetLoc[locInType]++; newStats.totalThroughput++;
                         m.carrying = null; taskFinished = true;
+                        // Remove from delivery queue after successful delivery
+                        if (newState.deliveryQueue.length > 0 && newState.deliveryQueue[0] === m.task!.product) {
+                            newState.deliveryQueue.shift();
+                        }
                         break;
                  }
 
