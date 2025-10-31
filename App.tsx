@@ -1114,8 +1114,14 @@ export default function App() {
                         {/* Heijunka */}
                         <div className="bg-gray-200 p-4 rounded-lg" ref={elementRefs.heijunkaBox}><div className="font-bold text-center mb-2">Heijunka Box</div><div className="text-center text-sm text-gray-700">Production Kanban</div><div className="flex items-center justify-center flex-wrap gap-2 p-2 min-h-[140px] bg-white border rounded mt-1">{loc.heijunka.map((kanbanType, i) => <MiniKanban key={`h-${kanbanType}-${i}`} type={kanbanType} />)}</div></div>
                         {/* Operator P */}
-                        <div className="flex flex-col items-center justify-center" ref={elementRefs.operatorP}>
+                        <div className="flex flex-col items-center justify-center relative" ref={elementRefs.operatorP}>
                            <Operator name="P" state={simState.p} type="P" />
+                           {/* Show P-Kanban when working */}
+                           {(simState.p.status === 'Working' || simState.p.status === 'Preparing') && simState.p.producingType && (
+                               <div className="absolute -top-2 -right-8">
+                                   <MiniKanban type={simState.p.producingType} />
+                               </div>
+                           )}
                            <div className="mt-4 text-sm font-semibold text-gray-700">Sat: {saturationPercP}%</div>
                            <div className="mt-1 text-base text-gray-800 font-bold">{rateP} p/min</div>
                            <div className="text-xs text-gray-500">(Ideal: {idealRateP} p/min)</div>
