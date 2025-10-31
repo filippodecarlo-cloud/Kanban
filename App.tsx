@@ -167,17 +167,6 @@ export default function App() {
         const numA1Pairs = currentConfig.numKanbanPairsA1;
         const numA2Pairs = currentConfig.numKanbanPairsA2;
 
-        const heijunkaKanbans: ('A1' | 'A2')[] = [
-            ...Array(numA1Pairs).fill('A1'),
-            ...Array(numA2Pairs).fill('A2')
-        ];
-
-        // Shuffle for fairness
-        for (let i = heijunkaKanbans.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [heijunkaKanbans[i], heijunkaKanbans[j]] = [heijunkaKanbans[j], heijunkaKanbans[i]];
-        }
-
         setSimState({
             a1: { status: 'Idle', timer: 0, kanbanWaiting: 0, producingType: null },
             a2: { status: 'Idle', timer: 0, kanbanWaiting: 0, producingType: null },
@@ -188,7 +177,7 @@ export default function App() {
                 pIn: { emptyA1WithW: 0, emptyA2WithW: 0, emptyA1Ready: 0, emptyA2Ready: 0 },
                 pFinished: { finishedA1: numA1Pairs, finishedA2: numA2Pairs },
                 pOut: { fullA1: 0, fullA2: 0 },
-                heijunka: heijunkaKanbans,
+                heijunka: [], // Start with empty Heijunka box
             },
             m: { status: M_Status.IDLE, timer: 0, task: null, carrying: null }
         });
@@ -986,7 +975,7 @@ export default function App() {
                             {[ {id: 'cycleTimeA1', label: 'T Ciclo A1 (s)'}, {id: 'cycleTimeA2', label: 'T Ciclo A2 (s)'}, {id: 'cycleTimeP', label: 'T Ciclo P (s)'}, {id: 'moveTimeM', label: 'T Spost. M (s)'}, {id: 'actionTimeM', label: 'T Azione M (s)'}, {id: 'numKanbanPairsA1', label: '# Kanban Pairs A1'}, {id: 'numKanbanPairsA2', label: '# Kanban Pairs A2'} ].map(c => (
                                 <div key={c.id}>
                                     <label htmlFor={c.id} className="block text-gray-600">{c.label}</label>
-                                    <input type="number" id={c.id} value={config[c.id as keyof Config]} onChange={handleConfigChange} min="0.1" step={c.id.includes('Kanban') ? 1 : 0.1} className="w-full p-1.5 border rounded-md" disabled={isRunning} />
+                                    <input type="number" id={c.id} value={config[c.id as keyof Config]} onChange={handleConfigChange} min="1" step="1" className="w-full p-1.5 border rounded-md" disabled={isRunning} />
                                 </div>
                             ))}
                         </div>

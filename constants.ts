@@ -63,8 +63,8 @@ export const STATUS_SHORT_NAMES: Record<M_Status, string> = {
 };
 
 export const INITIAL_CONFIG: import('./types').Config = {
-    cycleTimeA1: 10,
-    cycleTimeA2: 12,
+    cycleTimeA1: 20,
+    cycleTimeA2: 24,
     cycleTimeP: 8,
     moveTimeM: 3,
     actionTimeM: 1,
