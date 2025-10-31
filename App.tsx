@@ -66,7 +66,12 @@ const Operator: React.FC<{ name: string; state: any; type: 'P' | 'A' | 'M'; hide
         case 'P':
             sizeClasses = 'w-16 h-16 text-2xl';
             colorClasses = 'bg-blue-400';
-            if (state.status === 'Working') statusClasses = 'bg-blue-600 animate-pulse';
+            if (state.status === 'Working') {
+                statusClasses = 'bg-blue-600 animate-pulse';
+                // Show product icon when working
+                if (state.producingType === 'A1') content = '📦';
+                else if (state.producingType === 'A2') content = '⚙️';
+            }
             if (state.status === 'Preparing') statusClasses = 'bg-yellow-500 animate-spin';
             break;
         case 'A':
