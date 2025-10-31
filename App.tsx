@@ -677,11 +677,11 @@ export default function App() {
                                 // Batch mode: collect A1, then check for A2
                                 m.carrying!.emptyA1 = count;
                                 if (newState.a2.kanbanWaiting > 0) {
-                                    // Go to A2 next
+                                    // Go to A2 next - NO animation during intermediate move
                                     nextMoveStatus = M_Status.MOVING_TO_A2_OUT;
-                                    itemForAnimation = m.carrying;
+                                    itemForAnimation = null; // Hide items during collection phase
                                 } else {
-                                    // No A2, go directly to P-IN
+                                    // No A2, go directly to P-IN - SHOW all collected
                                     nextMoveStatus = M_Status.MOVING_TO_P_IN_WITH_EMPTY;
                                     itemForAnimation = m.carrying;
                                 }
@@ -695,7 +695,7 @@ export default function App() {
                             // No A1 to pick, check if batch mode and should go to A2
                             if (m.task?.type === M_Tasks.FETCH_EMPTY_BATCH && newState.a2.kanbanWaiting > 0) {
                                 nextMoveStatus = M_Status.MOVING_TO_A2_OUT;
-                                itemForAnimation = m.carrying;
+                                itemForAnimation = null; // Hide during move
                             } else {
                                 taskFinished = true;
                             }
@@ -708,10 +708,10 @@ export default function App() {
                              newState.a2.kanbanWaiting = 0;
 
                              if (m.task?.type === M_Tasks.FETCH_EMPTY_BATCH) {
-                                 // Batch mode: collect A2, then go to P-IN (A1 already collected or not needed)
+                                 // Batch mode: collect A2, then go to P-IN - SHOW all collected (A1+A2)
                                  m.carrying!.emptyA2 = count;
                                  nextMoveStatus = M_Status.MOVING_TO_P_IN_WITH_EMPTY;
-                                 itemForAnimation = m.carrying;
+                                 itemForAnimation = m.carrying; // Now show all containers
                              } else {
                                  // Single pickup mode (legacy)
                                  m.carrying = { type: 'Empty', product: 'A2', count };
@@ -722,7 +722,7 @@ export default function App() {
                              // No A2 to pick, go to P-IN with what we have (if batch mode)
                              if (m.task?.type === M_Tasks.FETCH_EMPTY_BATCH && (m.carrying?.emptyA1 || 0) > 0) {
                                  nextMoveStatus = M_Status.MOVING_TO_P_IN_WITH_EMPTY;
-                                 itemForAnimation = m.carrying;
+                                 itemForAnimation = m.carrying; // Show A1 containers we already have
                              } else {
                                  taskFinished = true;
                              }
