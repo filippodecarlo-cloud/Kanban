@@ -996,34 +996,6 @@ export default function App() {
                 <h1 className="text-3xl font-bold text-gray-800">Dynamic Kanban System</h1>
                 <p className="text-gray-600 mt-1">Observe flow and WIP by adjusting system parameters.</p>
 
-                {/* Challenge Selector */}
-                <div className="mt-6 mb-4">
-                    <h3 className="font-semibold text-gray-700 mb-3">Select Challenge or Free Simulation</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        {CHALLENGES.map(challenge => (
-                            <button
-                                key={challenge.id}
-                                onClick={() => handleChallengeSelect(challenge.id)}
-                                className={`px-4 py-2 rounded-md font-medium transition-all ${
-                                    selectedChallenge === challenge.id
-                                        ? 'bg-indigo-600 text-white shadow-lg scale-105'
-                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                }`}
-                            >
-                                {challenge.name}
-                            </button>
-                        ))}
-                    </div>
-                    {/* Challenge Description */}
-                    {selectedChallenge > 0 && (
-                        <div className="mt-3 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
-                            <p className="text-sm text-indigo-900">
-                                <span className="font-bold">Goal:</span> {CHALLENGES[selectedChallenge].description}
-                            </p>
-                        </div>
-                    )}
-                </div>
-
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
                     {/* Main Controls */}
                     <div className="bg-gray-50 p-4 rounded-lg border">
@@ -1193,6 +1165,37 @@ export default function App() {
                     </div>
                 </div>
             </main>
+
+            {/* Challenge Selector */}
+            <section className="bg-white p-6 rounded-lg shadow-md mt-4">
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">Challenges & Learning Scenarios</h2>
+                <p className="text-gray-600 mb-4">Select a challenge to load preset configurations, or use Free Simulation to customize all parameters.</p>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {CHALLENGES.map(challenge => (
+                        <button
+                            key={challenge.id}
+                            onClick={() => handleChallengeSelect(challenge.id)}
+                            className={`px-4 py-3 rounded-md font-medium transition-all ${
+                                selectedChallenge === challenge.id
+                                    ? 'bg-indigo-600 text-white shadow-lg scale-105'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:scale-102'
+                            }`}
+                        >
+                            {challenge.name}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Challenge Description */}
+                {selectedChallenge >= 0 && (
+                    <div className="mt-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                        <p className="text-base text-indigo-900">
+                            <span className="font-bold">Goal:</span> {CHALLENGES[selectedChallenge].description}
+                        </p>
+                    </div>
+                )}
+            </section>
         </div>
     );
 }
