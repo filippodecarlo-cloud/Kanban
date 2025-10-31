@@ -54,7 +54,7 @@ const MiniKanban: React.FC<{ type: 'A1' | 'A2' }> = ({ type }) => (
     </div>
 );
 
-const Operator: React.FC<{ name: string; state: any; type: 'P' | 'A' | 'M' }> = ({ name, state, type }) => {
+const Operator: React.FC<{ name: string; state: any; type: 'P' | 'A' | 'M'; hideStatus?: boolean }> = ({ name, state, type, hideStatus = false }) => {
     const status = STATUS_SHORT_NAMES[state.status as M_Status] || state.status;
     let baseClasses = 'rounded-full text-white font-bold flex items-center justify-center shadow-md transition-all duration-300';
     let sizeClasses = '';
@@ -85,16 +85,20 @@ const Operator: React.FC<{ name: string; state: any; type: 'P' | 'A' | 'M' }> = 
             if (state.status !== M_Status.IDLE) statusClasses = 'bg-green-700 animate-pulse';
             break;
     }
-    
+
     return (
         <div className="text-center">
             <div className={`${baseClasses} ${sizeClasses} ${colorClasses} ${statusClasses}`}>
                 {content}
             </div>
-            <div className="mt-2 text-sm text-gray-700 font-semibold min-h-[1.2em] whitespace-nowrap">{status}</div>
-            <div className="text-xs text-gray-500 min-h-[1.1em]">
-                {state.timer > 0 && state.status !== 'Starved' && state.status !== M_Status.IDLE ? `(${state.timer.toFixed(1)}s)` : ''}
-            </div>
+            {!hideStatus && (
+                <>
+                    <div className="mt-2 text-sm text-gray-700 font-semibold min-h-[1.2em] whitespace-nowrap">{status}</div>
+                    <div className="text-xs text-gray-500 min-h-[1.1em]">
+                        {state.timer > 0 && state.status !== 'Starved' && state.status !== M_Status.IDLE ? `(${state.timer.toFixed(1)}s)` : ''}
+                    </div>
+                </>
+            )}
         </div>
     );
 };
@@ -792,7 +796,7 @@ export default function App() {
                     transition: mizuMover.isTransitioning ? `left ${mizuMoveDuration}ms ease-in-out, top ${mizuMoveDuration}ms ease-in-out` : 'none',
                 }}
             >
-                <Operator name="M" state={simState.m} type="M" />
+                <Operator name="M" state={simState.m} type="M" hideStatus={true} />
             </div>
             <div
                 className="fixed z-40 pointer-events-none"
@@ -826,6 +830,53 @@ export default function App() {
                 <ContainerVisual type="A2" empty withWKanban />
             </div>
 
+            {/* Header and Controls */}
+            <header className="bg-white p-6 rounded-lg shadow-md mb-4">
+                <h1 className="text-3xl font-bold text-gray-800">Dynamic Kanban System</h1>
+                <p className="text-gray-600 mt-1">Observe flow and WIP by adjusting system parameters.</p>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
+                    {/* Main Controls */}
+                    <div className="bg-gray-50 p-4 rounded-lg border">
+                        <h3 className="font-semibold text-gray-700 mb-3">Simulation Controls</h3>
+                        <div className="flex gap-2">
+                             <button onClick={handleStepBackward} disabled={isRunning || isAnimating || history.length === 0} className="px-4 py-2 rounded-md font-semibold bg-gray-500 text-white hover:bg-gray-600 transition-transform hover:scale-105 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:scale-100">
+                                ◀ Step
+                            </button>
+                            <button onClick={handleStartPause} disabled={needsReset || isAnimating} className={`px-4 py-2 rounded-md font-semibold text-white transition-transform hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:scale-100 ${isRunning ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}>
+                                {isRunning ? '⏸ Pause' : '▶ ' + (simTime > 0 ? 'Resume' : 'Start')}
+                            </button>
+                            <button onClick={handleStepForward} disabled={isRunning || isAnimating} className="px-4 py-2 rounded-md font-semibold bg-blue-500 text-white hover:bg-blue-600 transition-transform hover:scale-105 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:scale-100">
+                                Step ▶
+                            </button>
+                            <button onClick={handleReset} className="px-4 py-2 rounded-md font-semibold bg-gray-600 text-white hover:bg-gray-700 transition-transform hover:scale-105">↻ Reset</button>
+                        </div>
+                    </div>
+                     {/* Configuration */}
+                    <div className="bg-gray-50 p-4 rounded-lg border lg:col-span-2">
+                        <h3 className="font-semibold text-gray-700 mb-3">Configuration</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-x-4 gap-y-2 text-sm">
+                            {[ {id: 'cycleTimeA1', label: 'T Ciclo A1 (s)'}, {id: 'cycleTimeA2', label: 'T Ciclo A2 (s)'}, {id: 'cycleTimeP', label: 'T Ciclo P (s)'}, {id: 'moveTimeM', label: 'T Spost. M (s)'}, {id: 'actionTimeM', label: 'T Azione M (s)'}, {id: 'numKanbanPairsA1', label: '# Kanban Pairs A1'}, {id: 'numKanbanPairsA2', label: '# Kanban Pairs A2'} ].map(c => (
+                                <div key={c.id}>
+                                    <label htmlFor={c.id} className="block text-gray-600">{c.label}</label>
+                                    <input type="number" id={c.id} value={config[c.id as keyof Config]} onChange={handleConfigChange} min="1" step="1" className="w-full p-1.5 border rounded-md" disabled={isRunning} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Stats & Status */}
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mt-4 text-center">
+                    <div className="bg-blue-50 p-3 rounded-lg"><div className="text-xs text-blue-800">Sim. Time</div><div className="text-xl font-bold text-blue-900">{simTime.toFixed(1)}s</div></div>
+                    <div className="bg-blue-50 p-3 rounded-lg lg:col-span-2"><div className="text-xs text-blue-800">Speed</div><div className="flex items-center justify-center gap-2"><input type="range" min="1" max="20" value={timeMultiplier} onChange={e => setTimeMultiplier(Number(e.target.value))} className="w-full" /><span className="text-xl font-bold text-blue-900 w-10">x{timeMultiplier}</span></div></div>
+                    <div className="bg-purple-50 p-3 rounded-lg"><div className="text-xs text-purple-800">Total WIP</div><div className="text-xl font-bold text-purple-900">{stats.totalWIP}</div></div>
+                    <div className="bg-green-50 p-3 rounded-lg"><div className="text-xs text-green-800">Finished</div><div className="text-xl font-bold text-green-900">{stats.totalThroughput}</div></div>
+                    <div className="bg-red-50 p-3 rounded-lg"><div className="text-xs text-red-800">Wait A1</div><div className="text-xl font-bold text-red-900">{starvePercA1}%</div></div>
+                    <div className="bg-orange-50 p-3 rounded-lg"><div className="text-xs text-orange-800">Wait A2</div><div className="text-xl font-bold text-orange-900">{starvePercA2}%</div></div>
+                </div>
+                 <div className="mt-4 bg-indigo-50 border border-indigo-200 text-indigo-800 p-3 rounded-lg min-h-[50px]"><span className="font-semibold">Status:</span> {needsReset ? "Configuration changed. Press 'Reset' to apply." : (isRunning ? "Simulation running..." : "Simulation paused.")}</div>
+            </header>
 
             {/* System Schema */}
             <main className="bg-white p-6 rounded-lg shadow-md mb-4">
@@ -899,9 +950,9 @@ export default function App() {
                         {/* Operator P */}
                         <div className="flex flex-col items-center justify-center" ref={elementRefs.operatorP}>
                            <Operator name="P" state={simState.p} type="P" />
-                           <div className="mt-4 text-xs text-gray-600">Sat: {saturationPercP}%</div>
-                           <div className="mt-1 text-xs text-gray-600 font-semibold">{rateP} p/min</div>
-                           <div className="text-[10px] text-gray-500">(Ideal: {idealRateP} p/min)</div>
+                           <div className="mt-4 text-sm font-semibold text-gray-700">Sat: {saturationPercP}%</div>
+                           <div className="mt-1 text-base text-gray-800 font-bold">{rateP} p/min</div>
+                           <div className="text-xs text-gray-500">(Ideal: {idealRateP} p/min)</div>
                         </div>
                         {/* P-Finished */}
                         <div className="bg-gray-200 p-4 rounded-lg" ref={elementRefs.pFinishedArea}><div className="bg-gray-600 text-white font-bold text-center py-2 rounded-md mb-2">P-Finished</div><div className="text-center text-sm text-gray-700">Finished (for M)</div><div className="flex items-center justify-center flex-wrap gap-2 p-2 min-h-[140px]">{[...Array(Math.max(0, loc.pFinished.finishedA1))].map((_,i) => <ContainerVisual key={`pf1-${i}`} type="A1" withPKanban />)}{[...Array(Math.max(0, loc.pFinished.finishedA2))].map((_,i) => <ContainerVisual key={`pf2-${i}`} type="A2" withPKanban />)}</div></div>
@@ -917,9 +968,9 @@ export default function App() {
                         {/* A1 */}
                         <div className="flex flex-col items-center justify-center relative" ref={elementRefs.operatorA1}>
                             <Operator name="A1" state={simState.a1} type="A" />
-                            <div className="mt-4 text-xs text-gray-600">Sat: {saturationPercA1}%</div>
-                            <div className="mt-1 text-xs text-gray-600 font-semibold">{rateA1} p/min</div>
-                            <div className="text-[10px] text-gray-500">(Ideal: {idealRateA1} p/min)</div>
+                            <div className="mt-4 text-sm font-semibold text-gray-700">Sat: {saturationPercA1}%</div>
+                            <div className="mt-1 text-base text-gray-800 font-bold">{rateA1} p/min</div>
+                            <div className="text-xs text-gray-500">(Ideal: {idealRateA1} p/min)</div>
                         </div>
                         {/* A1-OUT */}
                         <div className="bg-gray-200 p-4 rounded-lg" ref={elementRefs.a1OutArea}><div className="bg-red-800 text-white font-bold text-center py-2 rounded-md mb-2">A1-OUT</div><div className="text-center text-sm text-gray-700">Empty (for M)</div><div className="flex items-center justify-center flex-wrap gap-2 p-2 min-h-[100px]">{[...Array(Math.max(0, loc.a1Out.emptyA1))].map((_,i) => <ContainerVisual key={`a1o-${i}`} type="A1" empty withWKanban />)}</div></div>
@@ -936,63 +987,23 @@ export default function App() {
                         {/* A2 */}
                          <div className="flex flex-col items-center justify-center relative" ref={elementRefs.operatorA2}>
                             <Operator name="A2" state={simState.a2} type="A" />
-                             <div className="mt-4 text-xs text-gray-600">Sat: {saturationPercA2}%</div>
-                             <div className="mt-1 text-xs text-gray-600 font-semibold">{rateA2} p/min</div>
-                             <div className="text-[10px] text-gray-500">(Ideal: {idealRateA2} p/min)</div>
+                             <div className="mt-4 text-sm font-semibold text-gray-700">Sat: {saturationPercA2}%</div>
+                             <div className="mt-1 text-base text-gray-800 font-bold">{rateA2} p/min</div>
+                             <div className="text-xs text-gray-500">(Ideal: {idealRateA2} p/min)</div>
                         </div>
                         {/* A2-OUT */}
                         <div className="bg-gray-200 p-4 rounded-lg" ref={elementRefs.a2OutArea}><div className="bg-orange-800 text-white font-bold text-center py-2 rounded-md mb-2">A2-OUT</div><div className="text-center text-sm text-gray-700">Empty (for M)</div><div className="flex items-center justify-center flex-wrap gap-2 p-2 min-h-[100px]">{[...Array(Math.max(0, loc.a2Out.emptyA2))].map((_,i) => <ContainerVisual key={`a2o-${i}`} type="A2" empty withWKanban />)}</div></div>
+                        {/* M Status Display - Fixed Position */}
+                        <div className="lg:col-span-2 bg-gray-100 p-4 rounded-lg border-2 border-green-500 flex flex-col items-center justify-center">
+                            <div className="text-lg font-bold text-green-700 mb-2">Mizusumashi (M) Status</div>
+                            <div className="text-base text-gray-800 font-semibold min-h-[1.5em]">{STATUS_SHORT_NAMES[simState.m.status as M_Status] || simState.m.status}</div>
+                            <div className="text-sm text-gray-600 min-h-[1.2em]">
+                                {simState.m.timer > 0 && simState.m.status !== M_Status.IDLE ? `(${simState.m.timer.toFixed(1)}s)` : ''}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </main>
-
-            {/* Header and Controls */}
-            <header className="bg-white p-6 rounded-lg shadow-md">
-                <h1 className="text-3xl font-bold text-gray-800">Dynamic Kanban System</h1>
-                <p className="text-gray-600 mt-1">Observe flow and WIP by adjusting system parameters.</p>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
-                    {/* Main Controls */}
-                    <div className="bg-gray-50 p-4 rounded-lg border">
-                        <h3 className="font-semibold text-gray-700 mb-3">Simulation Controls</h3>
-                        <div className="flex gap-2">
-                             <button onClick={handleStepBackward} disabled={isRunning || isAnimating || history.length === 0} className="px-4 py-2 rounded-md font-semibold bg-gray-500 text-white hover:bg-gray-600 transition-transform hover:scale-105 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:scale-100">
-                                ◀ Step
-                            </button>
-                            <button onClick={handleStartPause} disabled={needsReset || isAnimating} className={`px-4 py-2 rounded-md font-semibold text-white transition-transform hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:scale-100 ${isRunning ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}>
-                                {isRunning ? '⏸ Pause' : '▶ ' + (simTime > 0 ? 'Resume' : 'Start')}
-                            </button>
-                            <button onClick={handleStepForward} disabled={isRunning || isAnimating} className="px-4 py-2 rounded-md font-semibold bg-blue-500 text-white hover:bg-blue-600 transition-transform hover:scale-105 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:scale-100">
-                                Step ▶
-                            </button>
-                            <button onClick={handleReset} className="px-4 py-2 rounded-md font-semibold bg-gray-600 text-white hover:bg-gray-700 transition-transform hover:scale-105">↻ Reset</button>
-                        </div>
-                    </div>
-                     {/* Configuration */}
-                    <div className="bg-gray-50 p-4 rounded-lg border lg:col-span-2">
-                        <h3 className="font-semibold text-gray-700 mb-3">Configuration</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-x-4 gap-y-2 text-sm">
-                            {[ {id: 'cycleTimeA1', label: 'T Ciclo A1 (s)'}, {id: 'cycleTimeA2', label: 'T Ciclo A2 (s)'}, {id: 'cycleTimeP', label: 'T Ciclo P (s)'}, {id: 'moveTimeM', label: 'T Spost. M (s)'}, {id: 'actionTimeM', label: 'T Azione M (s)'}, {id: 'numKanbanPairsA1', label: '# Kanban Pairs A1'}, {id: 'numKanbanPairsA2', label: '# Kanban Pairs A2'} ].map(c => (
-                                <div key={c.id}>
-                                    <label htmlFor={c.id} className="block text-gray-600">{c.label}</label>
-                                    <input type="number" id={c.id} value={config[c.id as keyof Config]} onChange={handleConfigChange} min="1" step="1" className="w-full p-1.5 border rounded-md" disabled={isRunning} />
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Stats & Status */}
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mt-4 text-center">
-                    <div className="bg-blue-50 p-3 rounded-lg"><div className="text-xs text-blue-800">Sim. Time</div><div className="text-xl font-bold text-blue-900">{simTime.toFixed(1)}s</div></div>
-                    <div className="bg-blue-50 p-3 rounded-lg lg:col-span-2"><div className="text-xs text-blue-800">Speed</div><div className="flex items-center justify-center gap-2"><input type="range" min="1" max="20" value={timeMultiplier} onChange={e => setTimeMultiplier(Number(e.target.value))} className="w-full" /><span className="text-xl font-bold text-blue-900 w-10">x{timeMultiplier}</span></div></div>
-                    <div className="bg-purple-50 p-3 rounded-lg"><div className="text-xs text-purple-800">Total WIP</div><div className="text-xl font-bold text-purple-900">{stats.totalWIP}</div></div>
-                    <div className="bg-green-50 p-3 rounded-lg"><div className="text-xs text-green-800">Finished</div><div className="text-xl font-bold text-green-900">{stats.totalThroughput}</div></div>
-                    <div className="bg-red-50 p-3 rounded-lg"><div className="text-xs text-red-800">Wait A1</div><div className="text-xl font-bold text-red-900">{starvePercA1}%</div></div>
-                    <div className="bg-orange-50 p-3 rounded-lg"><div className="text-xs text-orange-800">Wait A2</div><div className="text-xl font-bold text-orange-900">{starvePercA2}%</div></div>
-                </div>
-                 <div className="mt-4 bg-indigo-50 border border-indigo-200 text-indigo-800 p-3 rounded-lg min-h-[50px]"><span className="font-semibold">Status:</span> {needsReset ? "Configuration changed. Press 'Reset' to apply." : (isRunning ? "Simulation running..." : "Simulation paused.")}</div>
-            </header>
         </div>
     );
 }
