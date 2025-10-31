@@ -373,7 +373,7 @@ export default function App() {
                 // Trigger animation
                 const fromPos = getPosition(elementRefs.a1InArea.current);
                 const toPos = getPosition(elementRefs.a1OutArea.current);
-                const durationMs = Math.max(config.cycleTimeA1 * 1000 / timeMultiplier, 100);
+                const durationMs = Math.max(1.5 * 1000 / timeMultiplier, 100); // Fixed 1.5s animation
 
                 // Animate empty container from IN to OUT
                 setA1Animation(a => ({
@@ -426,7 +426,7 @@ export default function App() {
                 // Trigger animation
                 const fromPos = getPosition(elementRefs.a2InArea.current);
                 const toPos = getPosition(elementRefs.a2OutArea.current);
-                const durationMs = Math.max(config.cycleTimeA2 * 1000 / timeMultiplier, 100);
+                const durationMs = Math.max(1.5 * 1000 / timeMultiplier, 100); // Fixed 1.5s animation
 
                 // Animate empty container from IN to OUT
                 setA2Animation(a => ({
@@ -838,56 +838,8 @@ export default function App() {
             </div>
 
 
-            {/* Header and Controls */}
-            <header className="bg-white p-6 rounded-lg shadow-md mb-4">
-                <h1 className="text-3xl font-bold text-gray-800">Dynamic Kanban System</h1>
-                <p className="text-gray-600 mt-1">Observe flow and WIP by adjusting system parameters.</p>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
-                    {/* Main Controls */}
-                    <div className="bg-gray-50 p-4 rounded-lg border">
-                        <h3 className="font-semibold text-gray-700 mb-3">Simulation Controls</h3>
-                        <div className="flex gap-2">
-                             <button onClick={handleStepBackward} disabled={isRunning || isAnimating || history.length === 0} className="px-4 py-2 rounded-md font-semibold bg-gray-500 text-white hover:bg-gray-600 transition-transform hover:scale-105 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:scale-100">
-                                ◀ Step
-                            </button>
-                            <button onClick={handleStartPause} disabled={needsReset || isAnimating} className={`px-4 py-2 rounded-md font-semibold text-white transition-transform hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:scale-100 ${isRunning ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}>
-                                {isRunning ? '⏸ Pause' : '▶ ' + (simTime > 0 ? 'Resume' : 'Start')}
-                            </button>
-                            <button onClick={handleStepForward} disabled={isRunning || isAnimating} className="px-4 py-2 rounded-md font-semibold bg-blue-500 text-white hover:bg-blue-600 transition-transform hover:scale-105 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:scale-100">
-                                Step ▶
-                            </button>
-                            <button onClick={handleReset} className="px-4 py-2 rounded-md font-semibold bg-gray-600 text-white hover:bg-gray-700 transition-transform hover:scale-105">↻ Reset</button>
-                        </div>
-                    </div>
-                     {/* Configuration */}
-                    <div className="bg-gray-50 p-4 rounded-lg border lg:col-span-2">
-                        <h3 className="font-semibold text-gray-700 mb-3">Configuration</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-x-4 gap-y-2 text-sm">
-                            {[ {id: 'cycleTimeA1', label: 'T Ciclo A1 (s)'}, {id: 'cycleTimeA2', label: 'T Ciclo A2 (s)'}, {id: 'cycleTimeP', label: 'T Ciclo P (s)'}, {id: 'moveTimeM', label: 'T Spost. M (s)'}, {id: 'actionTimeM', label: 'T Azione M (s)'}, {id: 'numKanbanPairsA1', label: '# Kanban Pairs A1'}, {id: 'numKanbanPairsA2', label: '# Kanban Pairs A2'} ].map(c => (
-                                <div key={c.id}>
-                                    <label htmlFor={c.id} className="block text-gray-600">{c.label}</label>
-                                    <input type="number" id={c.id} value={config[c.id as keyof Config]} onChange={handleConfigChange} min="0.1" step={c.id.includes('Kanban') ? 1 : 0.1} className="w-full p-1.5 border rounded-md" disabled={isRunning} />
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Stats & Status */}
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mt-4 text-center">
-                    <div className="bg-blue-50 p-3 rounded-lg"><div className="text-xs text-blue-800">Sim. Time</div><div className="text-xl font-bold text-blue-900">{simTime.toFixed(1)}s</div></div>
-                    <div className="bg-blue-50 p-3 rounded-lg lg:col-span-2"><div className="text-xs text-blue-800">Speed</div><div className="flex items-center justify-center gap-2"><input type="range" min="1" max="20" value={timeMultiplier} onChange={e => setTimeMultiplier(Number(e.target.value))} className="w-full" /><span className="text-xl font-bold text-blue-900 w-10">x{timeMultiplier}</span></div></div>
-                    <div className="bg-purple-50 p-3 rounded-lg"><div className="text-xs text-purple-800">Total WIP</div><div className="text-xl font-bold text-purple-900">{stats.totalWIP}</div></div>
-                    <div className="bg-green-50 p-3 rounded-lg"><div className="text-xs text-green-800">Finished</div><div className="text-xl font-bold text-green-900">{stats.totalThroughput}</div></div>
-                    <div className="bg-red-50 p-3 rounded-lg"><div className="text-xs text-red-800">Wait A1</div><div className="text-xl font-bold text-red-900">{starvePercA1}%</div></div>
-                    <div className="bg-orange-50 p-3 rounded-lg"><div className="text-xs text-orange-800">Wait A2</div><div className="text-xl font-bold text-orange-900">{starvePercA2}%</div></div>
-                </div>
-                 <div className="mt-4 bg-indigo-50 border border-indigo-200 text-indigo-800 p-3 rounded-lg min-h-[50px]"><span className="font-semibold">Status:</span> {needsReset ? "Configuration changed. Press 'Reset' to apply." : (isRunning ? "Simulation running..." : "Simulation paused.")}</div>
-            </header>
-
             {/* System Schema */}
-            <main className="bg-white p-6 rounded-lg shadow-md">
+            <main className="bg-white p-6 rounded-lg shadow-md mb-4">
                 {/* Production Area */}
                 <div className="bg-green-50 border-4 border-green-300 rounded-lg p-6 mb-4">
                     <h2 className="text-xl font-bold text-green-800 mb-4">Production Department</h2>
@@ -1004,6 +956,54 @@ export default function App() {
                     </div>
                 </div>
             </main>
+
+            {/* Header and Controls */}
+            <header className="bg-white p-6 rounded-lg shadow-md">
+                <h1 className="text-3xl font-bold text-gray-800">Dynamic Kanban System</h1>
+                <p className="text-gray-600 mt-1">Observe flow and WIP by adjusting system parameters.</p>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
+                    {/* Main Controls */}
+                    <div className="bg-gray-50 p-4 rounded-lg border">
+                        <h3 className="font-semibold text-gray-700 mb-3">Simulation Controls</h3>
+                        <div className="flex gap-2">
+                             <button onClick={handleStepBackward} disabled={isRunning || isAnimating || history.length === 0} className="px-4 py-2 rounded-md font-semibold bg-gray-500 text-white hover:bg-gray-600 transition-transform hover:scale-105 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:scale-100">
+                                ◀ Step
+                            </button>
+                            <button onClick={handleStartPause} disabled={needsReset || isAnimating} className={`px-4 py-2 rounded-md font-semibold text-white transition-transform hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:scale-100 ${isRunning ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}>
+                                {isRunning ? '⏸ Pause' : '▶ ' + (simTime > 0 ? 'Resume' : 'Start')}
+                            </button>
+                            <button onClick={handleStepForward} disabled={isRunning || isAnimating} className="px-4 py-2 rounded-md font-semibold bg-blue-500 text-white hover:bg-blue-600 transition-transform hover:scale-105 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:scale-100">
+                                Step ▶
+                            </button>
+                            <button onClick={handleReset} className="px-4 py-2 rounded-md font-semibold bg-gray-600 text-white hover:bg-gray-700 transition-transform hover:scale-105">↻ Reset</button>
+                        </div>
+                    </div>
+                     {/* Configuration */}
+                    <div className="bg-gray-50 p-4 rounded-lg border lg:col-span-2">
+                        <h3 className="font-semibold text-gray-700 mb-3">Configuration</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-x-4 gap-y-2 text-sm">
+                            {[ {id: 'cycleTimeA1', label: 'T Ciclo A1 (s)'}, {id: 'cycleTimeA2', label: 'T Ciclo A2 (s)'}, {id: 'cycleTimeP', label: 'T Ciclo P (s)'}, {id: 'moveTimeM', label: 'T Spost. M (s)'}, {id: 'actionTimeM', label: 'T Azione M (s)'}, {id: 'numKanbanPairsA1', label: '# Kanban Pairs A1'}, {id: 'numKanbanPairsA2', label: '# Kanban Pairs A2'} ].map(c => (
+                                <div key={c.id}>
+                                    <label htmlFor={c.id} className="block text-gray-600">{c.label}</label>
+                                    <input type="number" id={c.id} value={config[c.id as keyof Config]} onChange={handleConfigChange} min="0.1" step={c.id.includes('Kanban') ? 1 : 0.1} className="w-full p-1.5 border rounded-md" disabled={isRunning} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Stats & Status */}
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mt-4 text-center">
+                    <div className="bg-blue-50 p-3 rounded-lg"><div className="text-xs text-blue-800">Sim. Time</div><div className="text-xl font-bold text-blue-900">{simTime.toFixed(1)}s</div></div>
+                    <div className="bg-blue-50 p-3 rounded-lg lg:col-span-2"><div className="text-xs text-blue-800">Speed</div><div className="flex items-center justify-center gap-2"><input type="range" min="1" max="20" value={timeMultiplier} onChange={e => setTimeMultiplier(Number(e.target.value))} className="w-full" /><span className="text-xl font-bold text-blue-900 w-10">x{timeMultiplier}</span></div></div>
+                    <div className="bg-purple-50 p-3 rounded-lg"><div className="text-xs text-purple-800">Total WIP</div><div className="text-xl font-bold text-purple-900">{stats.totalWIP}</div></div>
+                    <div className="bg-green-50 p-3 rounded-lg"><div className="text-xs text-green-800">Finished</div><div className="text-xl font-bold text-green-900">{stats.totalThroughput}</div></div>
+                    <div className="bg-red-50 p-3 rounded-lg"><div className="text-xs text-red-800">Wait A1</div><div className="text-xl font-bold text-red-900">{starvePercA1}%</div></div>
+                    <div className="bg-orange-50 p-3 rounded-lg"><div className="text-xs text-orange-800">Wait A2</div><div className="text-xl font-bold text-orange-900">{starvePercA2}%</div></div>
+                </div>
+                 <div className="mt-4 bg-indigo-50 border border-indigo-200 text-indigo-800 p-3 rounded-lg min-h-[50px]"><span className="font-semibold">Status:</span> {needsReset ? "Configuration changed. Press 'Reset' to apply." : (isRunning ? "Simulation running..." : "Simulation paused.")}</div>
+            </header>
         </div>
     );
 }
