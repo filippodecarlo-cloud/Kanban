@@ -29,6 +29,7 @@ export interface OperatorPState {
 export interface CarryingItem {
     type: 'Empty' | 'Finished' | 'Full';
     product: 'A1' | 'A2';
+    count?: number; // Number of items carried (for batch operations)
     hasPKanban?: boolean; // Tracks if the finished item still has its P-Kanban
     detachedKP?: { product: 'A1' | 'A2' };
     takenKW?: { product: 'A1' | 'A2' };
@@ -68,6 +69,7 @@ export interface SimulationState {
     p: OperatorPState;
     locations: LocationsState;
     m: MizuState;
+    deliveryQueue: ('A1' | 'A2')[]; // FIFO queue for delivery requests
 }
 
 export interface Stats {
