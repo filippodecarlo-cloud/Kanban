@@ -124,8 +124,21 @@ type HistoryEntry = {
     a2Animation: AssemblyAnimationState;
 };
 
+// Challenge presets
+const CHALLENGES = [
+    { id: 0, name: 'Free Simulation', description: 'Customize parameters and explore the system freely', config: INITIAL_CONFIG },
+    { id: 1, name: 'Challenge 1: The Bottleneck', description: 'Find the bottleneck! Why are stations starved? Config: Fast A1/A2 (10s), Slow P (30s), 2 Kanban pairs', config: { cycleTimeA1: 10, cycleTimeA2: 10, cycleTimeP: 30, moveTimeM: 3, actionTimeM: 1, numKanbanPairsA1: 2, numKanbanPairsA2: 2 } },
+    { id: 2, name: 'Challenge 2: Stressed Mizusumashi', description: 'M is always moving! Observe WIP accumulation. Config: All stations fast (5s), M slow (10s)', config: { cycleTimeA1: 5, cycleTimeA2: 5, cycleTimeP: 5, moveTimeM: 10, actionTimeM: 1, numKanbanPairsA1: 2, numKanbanPairsA2: 2 } },
+    { id: 3, name: 'Challenge 3: Minimum WIP, Maximum Throughput', description: 'Find minimum Kanban pairs that keep stations working without starvation', config: { cycleTimeA1: 20, cycleTimeA2: 24, cycleTimeP: 15, moveTimeM: 3, actionTimeM: 1, numKanbanPairsA1: 1, numKanbanPairsA2: 1 } },
+    { id: 4, name: 'Challenge 4: Balanced Times', description: 'Adjust cycle times to achieve >90% saturation on all stations with 2 Kanban pairs', config: { cycleTimeA1: 20, cycleTimeA2: 24, cycleTimeP: 8, moveTimeM: 3, actionTimeM: 1, numKanbanPairsA1: 2, numKanbanPairsA2: 2 } },
+    { id: 5, name: 'Challenge 5: Product Mix', description: 'A2 is 3x slower than A1! How to balance Kanban pairs? Which ratio optimizes throughput?', config: { cycleTimeA1: 10, cycleTimeA2: 30, cycleTimeP: 15, moveTimeM: 3, actionTimeM: 1, numKanbanPairsA1: 2, numKanbanPairsA2: 2 } },
+    { id: 6, name: 'Challenge 6: Quick Response', description: 'Minimize Lead Time. How fast can you complete an order with 1 Kanban pair?', config: { cycleTimeA1: 8, cycleTimeA2: 10, cycleTimeP: 6, moveTimeM: 2, actionTimeM: 1, numKanbanPairsA1: 1, numKanbanPairsA2: 1 } },
+    { id: 7, name: 'Challenge 7: Kaizen', description: 'Start with 3 Kanban pairs. Reduce WIP progressively. When does the system collapse?', config: { cycleTimeA1: 30, cycleTimeA2: 30, cycleTimeP: 30, moveTimeM: 3, actionTimeM: 1, numKanbanPairsA1: 3, numKanbanPairsA2: 3 } },
+];
+
 export default function App() {
     const [config, setConfig] = useState<Config>(INITIAL_CONFIG);
+    const [selectedChallenge, setSelectedChallenge] = useState(0);
     const [simState, setSimState] = useState<SimulationState | null>(null);
     const [stats, setStats] = useState<Stats>({ totalWIP: 0, totalThroughput: 0, starvedTimeA1: 0, starvedTimeA2: 0, workingTimeA1: 0, workingTimeA2: 0, workingTimeP: 0, throughputA1: 0, throughputA2: 0, throughputP: 0 });
     const [simTime, setSimTime] = useState(0);
@@ -229,6 +242,16 @@ export default function App() {
         setIsRunning(prev => !prev);
     };
 
+    const handleChallengeSelect = (challengeId: number) => {
+        if (isRunning) setIsRunning(false);
+        const challenge = CHALLENGES.find(c => c.id === challengeId);
+        if (challenge) {
+            setSelectedChallenge(challengeId);
+            setConfig(challenge.config);
+            setNeedsReset(true);
+        }
+    };
+
     const getTargetElementRef = (status: M_Status) => {
         switch (status) {
             // Moves
@@ -270,9 +293,45 @@ export default function App() {
         if(itemType === 'kanbanW') return <div className={`w-[22px] h-[18px] rounded-sm border-[1.5px] text-white text-[8px] font-bold flex items-center justify-center shadow-md ${item.product === 'A2' ? 'bg-gradient-to-br from-blue-600 to-blue-400 border-blue-800' : 'bg-gradient-to-br from-cyan-500 to-cyan-300 border-cyan-700'}`}>W</div>;
 
         const carrying = item as CarryingItem;
+
+        // For EmptyBatch (both A1 and A2), show separate stacks
+        if (carrying.type === 'EmptyBatch') {
+            const totalA1 = carrying.emptyA1 || 0;
+            const totalA2 = carrying.emptyA2 || 0;
+            const containers = [];
+            let offset = 0;
+
+            // Add A1 containers
+            for (let i = 0; i < Math.min(totalA1, 3); i++) {
+                containers.push(
+                    <div key={`a1-${i}`} className="absolute" style={{ transform: `translate(${offset * 8}px, ${-offset * 6}px)`, zIndex: 100 - offset }}>
+                        <ContainerVisual type="A1" empty withWKanban />
+                    </div>
+                );
+                offset++;
+            }
+            // Add A2 containers
+            for (let i = 0; i < Math.min(totalA2, 3); i++) {
+                containers.push(
+                    <div key={`a2-${i}`} className="absolute" style={{ transform: `translate(${offset * 8}px, ${-offset * 6}px)`, zIndex: 100 - offset }}>
+                        <ContainerVisual type="A2" empty withWKanban />
+                    </div>
+                );
+                offset++;
+            }
+
+            const total = totalA1 + totalA2;
+            return (
+                <div className="relative flex items-center">
+                    {containers}
+                    {total > 1 && <div className="absolute top-0 right-0 bg-blue-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center" style={{transform: 'translate(60px, -10px)', zIndex: 200}}>{total}</div>}
+                </div>
+            );
+        }
+
         const count = carrying.count || 1;
 
-        // For batch operations, show stacked containers
+        // For single-product batch operations, show stacked containers
         if (count > 1) {
             const containers = [];
             for (let i = 0; i < Math.min(count, 5); i++) { // Show max 5 visually
@@ -548,9 +607,8 @@ export default function App() {
                  // Priority 2: Process finished items
                  else if (newState.locations.pFinished.finishedA1 > 0 && pInHasEmptyA1WithW) nextTask = { type: M_Tasks.PROCESS_FINISHED, product: 'A1' };
                  else if (newState.locations.pFinished.finishedA2 > 0 && pInHasEmptyA2WithW) nextTask = { type: M_Tasks.PROCESS_FINISHED, product: 'A2' };
-                 // Priority 3: Fetch empty containers (batch pickup)
-                 else if (newState.a1.kanbanWaiting > 0) nextTask = { type: M_Tasks.FETCH_EMPTY, product: 'A1' };
-                 else if (newState.a2.kanbanWaiting > 0) nextTask = { type: M_Tasks.FETCH_EMPTY, product: 'A2' };
+                 // Priority 3: Fetch empty containers (BATCH pickup from both A1 and A2)
+                 else if (newState.a1.kanbanWaiting > 0 || newState.a2.kanbanWaiting > 0) nextTask = { type: M_Tasks.FETCH_EMPTY_BATCH, product: 'A1' }; // product unused for batch
                  // Priority 4: Deliver full containers (FIFO from deliveryQueue)
                  else if (newState.deliveryQueue.length > 0) {
                      const nextStation = newState.deliveryQueue[0];
@@ -564,7 +622,13 @@ export default function App() {
                  if (nextTask) {
                      m.task = nextTask;
                      let firstMoveStatus: M_Status;
-                     if(nextTask.type === M_Tasks.FETCH_EMPTY) firstMoveStatus = nextTask.product === 'A1' ? M_Status.MOVING_TO_A1_OUT : M_Status.MOVING_TO_A2_OUT;
+                     if(nextTask.type === M_Tasks.FETCH_EMPTY_BATCH) {
+                         // Start batch collection: go to A1 first if available, else A2
+                         if (newState.a1.kanbanWaiting > 0) firstMoveStatus = M_Status.MOVING_TO_A1_OUT;
+                         else firstMoveStatus = M_Status.MOVING_TO_A2_OUT;
+                         m.carrying = { type: 'EmptyBatch', product: 'A1', emptyA1: 0, emptyA2: 0 }; // Initialize batch carrier
+                     }
+                     else if(nextTask.type === M_Tasks.FETCH_EMPTY) firstMoveStatus = nextTask.product === 'A1' ? M_Status.MOVING_TO_A1_OUT : M_Status.MOVING_TO_A2_OUT;
                      else if (nextTask.type === M_Tasks.PROCESS_FINISHED) firstMoveStatus = M_Status.MOVING_TO_P_FINISHED;
                      else firstMoveStatus = M_Status.MOVING_TO_P_OUT_FOR_FULL;
                      
@@ -605,31 +669,77 @@ export default function App() {
                  switch(m.status) {
                      case M_Status.PICKING_A1_EMPTY:
                         if(newState.locations.a1Out.emptyA1 > 0) {
-                            // Batch pickup: take ALL empty containers
                             const count = newState.locations.a1Out.emptyA1;
                             newState.locations.a1Out.emptyA1 = 0;
                             newState.a1.kanbanWaiting = 0;
-                            m.carrying = { type: 'Empty', product: 'A1', count };
-                            nextMoveStatus = M_Status.MOVING_TO_P_IN_WITH_EMPTY;
-                            itemForAnimation = m.carrying;
-                        } else taskFinished = true;
+
+                            if (m.task?.type === M_Tasks.FETCH_EMPTY_BATCH) {
+                                // Batch mode: collect A1, then check for A2
+                                m.carrying!.emptyA1 = count;
+                                if (newState.a2.kanbanWaiting > 0) {
+                                    // Go to A2 next
+                                    nextMoveStatus = M_Status.MOVING_TO_A2_OUT;
+                                    itemForAnimation = m.carrying;
+                                } else {
+                                    // No A2, go directly to P-IN
+                                    nextMoveStatus = M_Status.MOVING_TO_P_IN_WITH_EMPTY;
+                                    itemForAnimation = m.carrying;
+                                }
+                            } else {
+                                // Single pickup mode (legacy)
+                                m.carrying = { type: 'Empty', product: 'A1', count };
+                                nextMoveStatus = M_Status.MOVING_TO_P_IN_WITH_EMPTY;
+                                itemForAnimation = m.carrying;
+                            }
+                        } else {
+                            // No A1 to pick, check if batch mode and should go to A2
+                            if (m.task?.type === M_Tasks.FETCH_EMPTY_BATCH && newState.a2.kanbanWaiting > 0) {
+                                nextMoveStatus = M_Status.MOVING_TO_A2_OUT;
+                                itemForAnimation = m.carrying;
+                            } else {
+                                taskFinished = true;
+                            }
+                        }
                         break;
                      case M_Status.PICKING_A2_EMPTY:
                          if (newState.locations.a2Out.emptyA2 > 0) {
-                             // Batch pickup: take ALL empty containers
                              const count = newState.locations.a2Out.emptyA2;
                              newState.locations.a2Out.emptyA2 = 0;
                              newState.a2.kanbanWaiting = 0;
-                             m.carrying = { type: 'Empty', product: 'A2', count };
-                             nextMoveStatus = M_Status.MOVING_TO_P_IN_WITH_EMPTY;
-                             itemForAnimation = m.carrying;
-                         } else taskFinished = true;
+
+                             if (m.task?.type === M_Tasks.FETCH_EMPTY_BATCH) {
+                                 // Batch mode: collect A2, then go to P-IN (A1 already collected or not needed)
+                                 m.carrying!.emptyA2 = count;
+                                 nextMoveStatus = M_Status.MOVING_TO_P_IN_WITH_EMPTY;
+                                 itemForAnimation = m.carrying;
+                             } else {
+                                 // Single pickup mode (legacy)
+                                 m.carrying = { type: 'Empty', product: 'A2', count };
+                                 nextMoveStatus = M_Status.MOVING_TO_P_IN_WITH_EMPTY;
+                                 itemForAnimation = m.carrying;
+                             }
+                         } else {
+                             // No A2 to pick, go to P-IN with what we have (if batch mode)
+                             if (m.task?.type === M_Tasks.FETCH_EMPTY_BATCH && (m.carrying?.emptyA1 || 0) > 0) {
+                                 nextMoveStatus = M_Status.MOVING_TO_P_IN_WITH_EMPTY;
+                                 itemForAnimation = m.carrying;
+                             } else {
+                                 taskFinished = true;
+                             }
+                         }
                          break;
                      case M_Status.DROPPING_EMPTY:
                          // Batch drop: deposit all carried containers
-                         const countToDrop = m.carrying?.count || 1;
-                         if (m.carrying?.product === 'A1') newState.locations.pIn.emptyA1WithW += countToDrop;
-                         else newState.locations.pIn.emptyA2WithW += countToDrop;
+                         if (m.carrying?.type === 'EmptyBatch') {
+                             // Drop both A1 and A2 empties
+                             newState.locations.pIn.emptyA1WithW += (m.carrying.emptyA1 || 0);
+                             newState.locations.pIn.emptyA2WithW += (m.carrying.emptyA2 || 0);
+                         } else {
+                             // Single product drop (legacy)
+                             const countToDrop = m.carrying?.count || 1;
+                             if (m.carrying?.product === 'A1') newState.locations.pIn.emptyA1WithW += countToDrop;
+                             else newState.locations.pIn.emptyA2WithW += countToDrop;
+                         }
                          m.carrying = null;
                          taskFinished = true;
                          break;
@@ -885,6 +995,34 @@ export default function App() {
             <header className="bg-white p-6 rounded-lg shadow-md mb-4">
                 <h1 className="text-3xl font-bold text-gray-800">Dynamic Kanban System</h1>
                 <p className="text-gray-600 mt-1">Observe flow and WIP by adjusting system parameters.</p>
+
+                {/* Challenge Selector */}
+                <div className="mt-6 mb-4">
+                    <h3 className="font-semibold text-gray-700 mb-3">Select Challenge or Free Simulation</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {CHALLENGES.map(challenge => (
+                            <button
+                                key={challenge.id}
+                                onClick={() => handleChallengeSelect(challenge.id)}
+                                className={`px-4 py-2 rounded-md font-medium transition-all ${
+                                    selectedChallenge === challenge.id
+                                        ? 'bg-indigo-600 text-white shadow-lg scale-105'
+                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                }`}
+                            >
+                                {challenge.name}
+                            </button>
+                        ))}
+                    </div>
+                    {/* Challenge Description */}
+                    {selectedChallenge > 0 && (
+                        <div className="mt-3 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                            <p className="text-sm text-indigo-900">
+                                <span className="font-bold">Goal:</span> {CHALLENGES[selectedChallenge].description}
+                            </p>
+                        </div>
+                    )}
+                </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
                     {/* Main Controls */}

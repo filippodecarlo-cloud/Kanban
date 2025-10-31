@@ -27,9 +27,11 @@ export interface OperatorPState {
 }
 
 export interface CarryingItem {
-    type: 'Empty' | 'Finished' | 'Full';
+    type: 'Empty' | 'Finished' | 'Full' | 'EmptyBatch';
     product: 'A1' | 'A2';
     count?: number; // Number of items carried (for batch operations)
+    emptyA1?: number; // For EmptyBatch: count of A1 empties
+    emptyA2?: number; // For EmptyBatch: count of A2 empties
     hasPKanban?: boolean; // Tracks if the finished item still has its P-Kanban
     detachedKP?: { product: 'A1' | 'A2' };
     takenKW?: { product: 'A1' | 'A2' };

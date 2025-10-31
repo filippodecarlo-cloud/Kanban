@@ -1,6 +1,7 @@
 
 export enum M_Tasks {
     FETCH_EMPTY = 'FetchEmpty',
+    FETCH_EMPTY_BATCH = 'FetchEmptyBatch', // Collect from both A1 and A2
     PROCESS_FINISHED = 'ProcessFinished',
     DELIVER_FULL = 'DeliverFull',
 }
