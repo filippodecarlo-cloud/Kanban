@@ -1,0 +1,5 @@
+{
+  "name": "Dynamic Kanban System Simulation",
+  "description": "An interactive simulation of a Kanban system in a manufacturing environment, demonstrating the flow of materials and information. Observe how changes in cycle times and kanban counts affect Work-In-Progress (WIP), throughput, and operator waiting times, with animated movements for clarity.",
+  "requestFramePermissions": []
+}
