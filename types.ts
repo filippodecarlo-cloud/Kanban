@@ -21,7 +21,7 @@ export interface StationState {
 }
 
 export interface OperatorPState {
-    status: 'Idle' | 'Working' | 'Preparing';
+    status: 'Idle' | 'Working' | 'Preparing' | 'Delivering';
     timer: number;
     producingType: 'A1' | 'A2' | null;
 }
