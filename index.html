@@ -3,8 +3,24 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
     <title>Dynamic Kanban System Simulation</title>
+
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Interactive Kanban system simulation for operations management and Lean Production by Filippo De Carlo" />
+    <meta name="theme-color" content="#4f46e5" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Kanban Sim" />
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/Kanban/manifest.json" />
+
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="/Kanban/icon-192.svg" />
+    <link rel="apple-touch-icon" href="/Kanban/icon-192.svg" />
+
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       @keyframes bounce-subtle {
@@ -91,5 +107,16 @@
   <body class="bg-gray-50">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
+
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/Kanban/sw.js')
+            .then(registration => console.log('SW registered:', registration))
+            .catch(error => console.log('SW registration failed:', error));
+        });
+      }
+    </script>
   </body>
 </html>
