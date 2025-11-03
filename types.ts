@@ -99,6 +99,7 @@ export interface MovingElement {
 export interface AssemblyAnimationState {
     visible: boolean;
     product: 'A1' | 'A2';
+    animationType: 'piece' | 'container'; // 'piece' = show product icon, 'container' = show empty container
     // FIX: Use the imported CSSProperties type directly to resolve the 'React' namespace error.
     style: CSSProperties;
 }

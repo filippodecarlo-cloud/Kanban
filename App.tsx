@@ -424,8 +424,9 @@ export default function App() {
     
     const getItemContent = (item: CarryingItem | null | {product: 'A1' | 'A2'} , itemType?: 'container'| 'kanbanP' | 'kanbanW' ) => {
         if (!item) return null;
-        if(itemType === 'kanbanP') return <MiniKanban type={item.product} />;
-        if(itemType === 'kanbanW') return <div className={`w-[22px] h-[18px] rounded-sm border-[1.5px] text-white text-[8px] font-bold flex items-center justify-center shadow-md ${item.product === 'A2' ? 'bg-gradient-to-br from-blue-600 to-blue-400 border-blue-800' : 'bg-gradient-to-br from-cyan-500 to-cyan-300 border-cyan-700'}`}>W</div>;
+        // Larger kanban for animations to make them more visible
+        if(itemType === 'kanbanP') return <div className={`w-[50px] h-[40px] rounded-md border-2 text-white text-lg font-bold flex items-center justify-center shadow-lg ${item.product === 'A2' ? 'bg-gradient-to-br from-red-600 to-red-500 border-red-800' : 'bg-gradient-to-br from-pink-500 to-pink-400 border-pink-700'}`}>P</div>;
+        if(itemType === 'kanbanW') return <div className={`w-[40px] h-[32px] rounded-sm border-2 text-white text-sm font-bold flex items-center justify-center shadow-lg ${item.product === 'A2' ? 'bg-gradient-to-br from-blue-600 to-blue-400 border-blue-800' : 'bg-gradient-to-br from-cyan-500 to-cyan-300 border-cyan-700'}`}>W</div>;
 
         const carrying = item as CarryingItem;
 
@@ -527,7 +528,9 @@ export default function App() {
         const toPPos = getPosition(elementRefs.operatorP.current);
         const effectiveDurationMs = Math.max(P_MATERIAL_MOVE_DURATION_S * 1000 / timeMultiplier, 100);
 
-        setKanbanMover({ visible: true, x: fromKanbanPos.x, y: fromKanbanPos.y, isTransitioning: false, content: <MiniKanban type={productType} /> });
+        // Use larger kanban for better visibility during animation
+        const largeKanban = <div className={`w-[50px] h-[40px] rounded-md border-2 text-white text-lg font-bold flex items-center justify-center shadow-lg ${productType === 'A2' ? 'bg-gradient-to-br from-red-600 to-red-500 border-red-800' : 'bg-gradient-to-br from-pink-500 to-pink-400 border-pink-700'}`}>P</div>;
+        setKanbanMover({ visible: true, x: fromKanbanPos.x, y: fromKanbanPos.y, isTransitioning: false, content: largeKanban });
         setEmptyToPMover({ visible: true, x: fromEmptyPos.x, y: fromEmptyPos.y, isTransitioning: false, content: <ContainerVisual type={productType} empty /> });
 
         animationFrameRef.current = requestAnimationFrame(() => {
@@ -1581,6 +1584,33 @@ export default function App() {
                            </div>
                         </div>
                     </div>
+                     {/* Finished Pieces Area */}
+                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+                        <div className="bg-green-100 p-3 rounded-lg border-2 border-green-400">
+                            <div className="text-center font-bold text-green-800 mb-2">A1 Finished Pieces</div>
+                            <div className="flex items-center justify-center gap-2 flex-wrap min-h-[60px]">
+                                {[...Array(Math.min(stats.throughputA1, 10))].map((_, i) => (
+                                    <div key={`fa1-${i}`} className="text-3xl">📦</div>
+                                ))}
+                                {stats.throughputA1 > 10 && (
+                                    <div className="text-lg font-bold text-green-800">+{stats.throughputA1 - 10}</div>
+                                )}
+                            </div>
+                            <div className="text-center text-sm font-semibold text-green-800 mt-1">Total: {stats.throughputA1}</div>
+                        </div>
+                        <div className="bg-orange-100 p-3 rounded-lg border-2 border-orange-400">
+                            <div className="text-center font-bold text-orange-800 mb-2">A2 Finished Pieces</div>
+                            <div className="flex items-center justify-center gap-2 flex-wrap min-h-[60px]">
+                                {[...Array(Math.min(stats.throughputA2, 10))].map((_, i) => (
+                                    <div key={`fa2-${i}`} className="text-3xl">⚙️</div>
+                                ))}
+                                {stats.throughputA2 > 10 && (
+                                    <div className="text-lg font-bold text-orange-800">+{stats.throughputA2 - 10}</div>
+                                )}
+                            </div>
+                            <div className="text-center text-sm font-semibold text-orange-800 mt-1">Total: {stats.throughputA2}</div>
+                        </div>
+                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
                         {/* A2-IN */}
                         <div ref={elementRefs.a2InArea}>
