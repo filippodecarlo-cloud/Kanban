@@ -158,8 +158,8 @@ export default function App() {
     const [emptyToPMover, setEmptyToPMover] = useState<MovingElement>({ visible: false, x: 0, y: 0, isTransitioning: false, content: null });
     const [history, setHistory] = useState<HistoryEntry[]>([]);
 
-    const [a1Animation, setA1Animation] = useState<AssemblyAnimationState>({ visible: false, product: 'A1', style: {} });
-    const [a2Animation, setA2Animation] = useState<AssemblyAnimationState>({ visible: false, product: 'A2', style: {} });
+    const [a1Animation, setA1Animation] = useState<AssemblyAnimationState>({ visible: false, product: 'A1', animationType: 'piece', style: {} });
+    const [a2Animation, setA2Animation] = useState<AssemblyAnimationState>({ visible: false, product: 'A2', animationType: 'piece', style: {} });
 
     const simulationIntervalRef = useRef<number | null>(null);
     const animationTimeoutRef = useRef<number | null>(null);
@@ -218,8 +218,8 @@ export default function App() {
         setItemMover(i => ({ ...i, visible: false }));
         setKanbanMover(k => ({ ...k, visible: false }));
         setEmptyToPMover(e => ({ ...e, visible: false }));
-        setA1Animation({ visible: false, product: 'A1', style: {} });
-        setA2Animation({ visible: false, product: 'A2', style: {} });
+        setA1Animation({ visible: false, product: 'A1', animationType: 'piece', style: {} });
+        setA2Animation({ visible: false, product: 'A2', animationType: 'piece', style: {} });
     }, [initialPositions.mHome]);
 
     useEffect(() => {
@@ -296,8 +296,9 @@ export default function App() {
     
     const getItemContent = (item: CarryingItem | null | {product: 'A1' | 'A2'} , itemType?: 'container'| 'kanbanP' | 'kanbanW' ) => {
         if (!item) return null;
-        if(itemType === 'kanbanP') return <MiniKanban type={item.product} />;
-        if(itemType === 'kanbanW') return <div className={`w-[22px] h-[18px] rounded-sm border-[1.5px] text-white text-[8px] font-bold flex items-center justify-center shadow-md ${item.product === 'A2' ? 'bg-gradient-to-br from-blue-600 to-blue-400 border-blue-800' : 'bg-gradient-to-br from-cyan-500 to-cyan-300 border-cyan-700'}`}>W</div>;
+        // Larger kanban for animations to make them more visible
+        if(itemType === 'kanbanP') return <div className={`w-[50px] h-[40px] rounded-md border-2 text-white text-lg font-bold flex items-center justify-center shadow-lg ${item.product === 'A2' ? 'bg-gradient-to-br from-red-600 to-red-500 border-red-800' : 'bg-gradient-to-br from-pink-500 to-pink-400 border-pink-700'}`}>P</div>;
+        if(itemType === 'kanbanW') return <div className={`w-[40px] h-[32px] rounded-sm border-2 text-white text-sm font-bold flex items-center justify-center shadow-lg ${item.product === 'A2' ? 'bg-gradient-to-br from-blue-600 to-blue-400 border-blue-800' : 'bg-gradient-to-br from-cyan-500 to-cyan-300 border-cyan-700'}`}>W</div>;
 
         const carrying = item as CarryingItem;
 
@@ -396,7 +397,9 @@ export default function App() {
         const toPPos = getPosition(elementRefs.operatorP.current);
         const effectiveDurationMs = Math.max(P_MATERIAL_MOVE_DURATION_S * 1000 / timeMultiplier, 100);
 
-        setKanbanMover({ visible: true, x: fromKanbanPos.x, y: fromKanbanPos.y, isTransitioning: false, content: <MiniKanban type={productType} /> });
+        // Use larger kanban for better visibility during animation
+        const largeKanban = <div className={`w-[50px] h-[40px] rounded-md border-2 text-white text-lg font-bold flex items-center justify-center shadow-lg ${productType === 'A2' ? 'bg-gradient-to-br from-red-600 to-red-500 border-red-800' : 'bg-gradient-to-br from-pink-500 to-pink-400 border-pink-700'}`}>P</div>;
+        setKanbanMover({ visible: true, x: fromKanbanPos.x, y: fromKanbanPos.y, isTransitioning: false, content: largeKanban });
         setEmptyToPMover({ visible: true, x: fromEmptyPos.x, y: fromEmptyPos.y, isTransitioning: false, content: <ContainerVisual type={productType} empty /> });
 
         animationFrameRef.current = requestAnimationFrame(() => {
@@ -445,26 +448,16 @@ export default function App() {
                 newState.a1.kanbanWaiting++;
                 newState.a1.producingType = null;
                 newStats.throughputA1++;
-                setA1Animation(a => ({...a, visible: false}));
-                // Add to delivery queue for FIFO refill
-                newState.deliveryQueue.push('A1');
-            }
-        } else { // If not working (Idle or Starved), check for materials
-            if (newState.locations.a1In.fullA1 > 0) {
-                newState.locations.a1In.fullA1--;
-                newState.a1.status = 'Working';
-                newState.a1.producingType = 'A1';
-                newState.a1.timer = config.cycleTimeA1;
-                
-                // Trigger animation
-                const fromPos = getPosition(elementRefs.a1InArea.current);
-                const toPos = getPosition(elementRefs.a1OutArea.current);
-                const durationMs = Math.max(1.5 * 1000 / timeMultiplier, 100); // Fixed 1.5s animation
 
-                // Animate empty container from IN to OUT
+                // Animate empty container from operator to OUT
+                const fromPos = getPosition(elementRefs.operatorA1.current);
+                const toPos = getPosition(elementRefs.a1OutArea.current);
+                const durationMs = Math.max(0.8 * 1000 / timeMultiplier, 100); // Quick animation
+
                 setA1Animation(a => ({
                     ...a,
                     visible: true,
+                    animationType: 'container',
                     style: {
                         left: fromPos.x,
                         top: fromPos.y,
@@ -483,6 +476,51 @@ export default function App() {
                             transition: `left ${durationMs}ms linear, top ${durationMs}ms linear`,
                         }
                     }));
+
+                    // Hide animation after completion
+                    setTimeout(() => setA1Animation(a => ({...a, visible: false})), durationMs);
+                });
+
+                // Add to delivery queue for FIFO refill
+                newState.deliveryQueue.push('A1');
+            }
+        } else { // If not working (Idle or Starved), check for materials
+            if (newState.locations.a1In.fullA1 > 0) {
+                newState.locations.a1In.fullA1--;
+                newState.a1.status = 'Working';
+                newState.a1.producingType = 'A1';
+                newState.a1.timer = config.cycleTimeA1;
+
+                // Animate piece from IN to operator
+                const fromPos = getPosition(elementRefs.a1InArea.current);
+                const toPos = getPosition(elementRefs.operatorA1.current);
+                const durationMs = Math.max(0.8 * 1000 / timeMultiplier, 100); // Quick animation
+
+                setA1Animation(a => ({
+                    ...a,
+                    visible: true,
+                    animationType: 'piece',
+                    style: {
+                        left: fromPos.x,
+                        top: fromPos.y,
+                        transform: 'translate(-50%, -50%)',
+                        transition: 'none',
+                    }
+                }));
+
+                requestAnimationFrame(() => {
+                    setA1Animation(a => ({
+                        ...a,
+                        style: {
+                            ...a.style,
+                            left: toPos.x,
+                            top: toPos.y,
+                            transition: `left ${durationMs}ms linear, top ${durationMs}ms linear`,
+                        }
+                    }));
+
+                    // Hide animation after completion
+                    setTimeout(() => setA1Animation(a => ({...a, visible: false})), durationMs);
                 });
             } else {
                  newState.a1.status = 'Starved';
@@ -500,26 +538,16 @@ export default function App() {
                 newState.a2.kanbanWaiting++;
                 newState.a2.producingType = null;
                 newStats.throughputA2++;
-                setA2Animation(a => ({...a, visible: false}));
-                // Add to delivery queue for FIFO refill
-                newState.deliveryQueue.push('A2');
-            }
-        } else { // If not working (Idle or Starved), check for materials
-            if (newState.locations.a2In.fullA2 > 0) {
-                newState.locations.a2In.fullA2--;
-                newState.a2.status = 'Working';
-                newState.a2.producingType = 'A2';
-                newState.a2.timer = config.cycleTimeA2;
-                
-                // Trigger animation
-                const fromPos = getPosition(elementRefs.a2InArea.current);
-                const toPos = getPosition(elementRefs.a2OutArea.current);
-                const durationMs = Math.max(1.5 * 1000 / timeMultiplier, 100); // Fixed 1.5s animation
 
-                // Animate empty container from IN to OUT
+                // Animate empty container from operator to OUT
+                const fromPos = getPosition(elementRefs.operatorA2.current);
+                const toPos = getPosition(elementRefs.a2OutArea.current);
+                const durationMs = Math.max(0.8 * 1000 / timeMultiplier, 100); // Quick animation
+
                 setA2Animation(a => ({
                     ...a,
                     visible: true,
+                    animationType: 'container',
                     style: {
                         left: fromPos.x,
                         top: fromPos.y,
@@ -538,6 +566,51 @@ export default function App() {
                             transition: `left ${durationMs}ms linear, top ${durationMs}ms linear`,
                         }
                     }));
+
+                    // Hide animation after completion
+                    setTimeout(() => setA2Animation(a => ({...a, visible: false})), durationMs);
+                });
+
+                // Add to delivery queue for FIFO refill
+                newState.deliveryQueue.push('A2');
+            }
+        } else { // If not working (Idle or Starved), check for materials
+            if (newState.locations.a2In.fullA2 > 0) {
+                newState.locations.a2In.fullA2--;
+                newState.a2.status = 'Working';
+                newState.a2.producingType = 'A2';
+                newState.a2.timer = config.cycleTimeA2;
+
+                // Animate piece from IN to operator
+                const fromPos = getPosition(elementRefs.a2InArea.current);
+                const toPos = getPosition(elementRefs.operatorA2.current);
+                const durationMs = Math.max(0.8 * 1000 / timeMultiplier, 100); // Quick animation
+
+                setA2Animation(a => ({
+                    ...a,
+                    visible: true,
+                    animationType: 'piece',
+                    style: {
+                        left: fromPos.x,
+                        top: fromPos.y,
+                        transform: 'translate(-50%, -50%)',
+                        transition: 'none',
+                    }
+                }));
+
+                requestAnimationFrame(() => {
+                    setA2Animation(a => ({
+                        ...a,
+                        style: {
+                            ...a.style,
+                            left: toPos.x,
+                            top: toPos.y,
+                            transition: `left ${durationMs}ms linear, top ${durationMs}ms linear`,
+                        }
+                    }));
+
+                    // Hide animation after completion
+                    setTimeout(() => setA2Animation(a => ({...a, visible: false})), durationMs);
                 });
             } else {
                 newState.a2.status = 'Starved';
@@ -992,10 +1065,10 @@ export default function App() {
             >{emptyToPMover.content}</div>
             {/* Assembly Animation Movers */}
             <div className={`fixed z-30 pointer-events-none ${a1Animation.visible ? 'opacity-100' : 'opacity-0'}`} style={a1Animation.style}>
-                <ContainerVisual type="A1" empty withWKanban />
+                {a1Animation.animationType === 'piece' ? <div className="text-4xl">📦</div> : <ContainerVisual type="A1" empty withWKanban />}
             </div>
             <div className={`fixed z-30 pointer-events-none ${a2Animation.visible ? 'opacity-100' : 'opacity-0'}`} style={a2Animation.style}>
-                <ContainerVisual type="A2" empty withWKanban />
+                {a2Animation.animationType === 'piece' ? <div className="text-4xl">⚙️</div> : <ContainerVisual type="A2" empty withWKanban />}
             </div>
 
             {/* Header and Controls */}
@@ -1156,6 +1229,33 @@ export default function App() {
                            </div>
                         </div>
                     </div>
+                     {/* Finished Pieces Area */}
+                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+                        <div className="bg-green-100 p-3 rounded-lg border-2 border-green-400">
+                            <div className="text-center font-bold text-green-800 mb-2">A1 Finished Pieces</div>
+                            <div className="flex items-center justify-center gap-2 flex-wrap min-h-[60px]">
+                                {[...Array(Math.min(stats.throughputA1, 10))].map((_, i) => (
+                                    <div key={`fa1-${i}`} className="text-3xl">📦</div>
+                                ))}
+                                {stats.throughputA1 > 10 && (
+                                    <div className="text-lg font-bold text-green-800">+{stats.throughputA1 - 10}</div>
+                                )}
+                            </div>
+                            <div className="text-center text-sm font-semibold text-green-800 mt-1">Total: {stats.throughputA1}</div>
+                        </div>
+                        <div className="bg-orange-100 p-3 rounded-lg border-2 border-orange-400">
+                            <div className="text-center font-bold text-orange-800 mb-2">A2 Finished Pieces</div>
+                            <div className="flex items-center justify-center gap-2 flex-wrap min-h-[60px]">
+                                {[...Array(Math.min(stats.throughputA2, 10))].map((_, i) => (
+                                    <div key={`fa2-${i}`} className="text-3xl">⚙️</div>
+                                ))}
+                                {stats.throughputA2 > 10 && (
+                                    <div className="text-lg font-bold text-orange-800">+{stats.throughputA2 - 10}</div>
+                                )}
+                            </div>
+                            <div className="text-center text-sm font-semibold text-orange-800 mt-1">Total: {stats.throughputA2}</div>
+                        </div>
+                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
                         {/* A2-IN */}
                         <div className="bg-gray-200 p-4 rounded-lg" ref={elementRefs.a2InArea}><div className="bg-orange-800 text-white font-bold text-center py-2 rounded-md mb-2">A2-IN</div><div className="text-center text-sm text-gray-700">Full (from M)</div><div className="flex items-center justify-center flex-wrap gap-2 p-2 min-h-[100px]">{[...Array(Math.max(0, loc.a2In.fullA2))].map((_,i) => <ContainerVisual key={`a2i-${i}`} type="A2" withWKanban />)}</div></div>
