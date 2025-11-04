@@ -557,6 +557,10 @@ export default function App() {
         const largeKanban = <div className={`w-[50px] h-[40px] rounded-md border-2 text-white text-lg font-bold flex items-center justify-center shadow-lg ${productType === 'A2' ? 'bg-gradient-to-br from-red-600 to-red-500 border-red-800' : 'bg-gradient-to-br from-pink-500 to-pink-400 border-pink-700'}`}>P</div>;
         const emptyContainer = <ContainerVisual type={productType} empty />;
 
+        // Step 0: Hide any existing items from previous animations
+        setKanbanMover({ visible: false, x: 0, y: 0, isTransitioning: false, content: null });
+        setEmptyToPMover({ visible: false, x: 0, y: 0, isTransitioning: false, content: null });
+
         // Step 1: Show P at home position (no items yet)
         setPMover({ visible: true, x: pHomePos.x, y: pHomePos.y, isTransitioning: false });
 
