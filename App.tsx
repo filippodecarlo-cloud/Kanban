@@ -1549,7 +1549,7 @@ export default function App() {
                                <Operator name="P" state={simState.p} type="P" />
                            </div>
                            {/* Show P-Kanban when working */}
-                           {(simState.p.status === 'Working' || simState.p.status === 'Preparing') && simState.p.producingType && (
+                           {simState.p.status === 'Working' && simState.p.producingType && (
                                <div className="absolute -top-2 -right-2">
                                    <MiniKanban type={simState.p.producingType} />
                                </div>
