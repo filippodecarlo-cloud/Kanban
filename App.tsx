@@ -283,6 +283,8 @@ export default function App() {
     const [pMover, setPMover] = useState<{ visible: boolean; x: number; y: number; isTransitioning: boolean }>({ visible: false, x: 0, y: 0, isTransitioning: false });
     const [a1Mover, setA1Mover] = useState<{ visible: boolean; x: number; y: number; isTransitioning: boolean }>({ visible: false, x: 0, y: 0, isTransitioning: false });
     const [a2Mover, setA2Mover] = useState<{ visible: boolean; x: number; y: number; isTransitioning: boolean }>({ visible: false, x: 0, y: 0, isTransitioning: false });
+    const [finishedA1Mover, setFinishedA1Mover] = useState<MovingElement>({ visible: false, x: 0, y: 0, isTransitioning: false, content: null });
+    const [finishedA2Mover, setFinishedA2Mover] = useState<MovingElement>({ visible: false, x: 0, y: 0, isTransitioning: false, content: null });
     const [history, setHistory] = useState<HistoryEntry[]>([]);
 
     const [a1Animation, setA1Animation] = useState<AssemblyAnimationState>({ visible: false, product: 'A1', style: {} });
@@ -302,6 +304,7 @@ export default function App() {
         a2InArea: useRef<HTMLDivElement>(null), a2OutArea: useRef<HTMLDivElement>(null),
         pInArea: useRef<HTMLDivElement>(null), pOutArea: useRef<HTMLDivElement>(null),
         pFinishedArea: useRef<HTMLDivElement>(null), heijunkaBox: useRef<HTMLDivElement>(null),
+        a1FinishedArea: useRef<HTMLDivElement>(null), a2FinishedArea: useRef<HTMLDivElement>(null),
     };
     
     const [initialPositions, setInitialPositions] = useState({ mHome: { x: 0, y: 0 } });
@@ -610,6 +613,42 @@ export default function App() {
         });
     }, [timeMultiplier, config.moveTimeM, config.actionTimeM, elementRefs.operatorP, elementRefs.heijunkaBox, elementRefs.pInArea]);
 
+    const animateFinishedA1 = useCallback((onComplete: () => void) => {
+        const fromPos = getPosition(elementRefs.operatorA1.current);
+        const toPos = getPosition(elementRefs.a1FinishedArea.current);
+        const effectiveDurationMs = Math.max(500 / timeMultiplier, 100);
+
+        const pieceContent = <div className="text-4xl">📦</div>;
+        setFinishedA1Mover({ visible: true, x: fromPos.x, y: fromPos.y, isTransitioning: false, content: pieceContent });
+
+        animationFrameRef.current = requestAnimationFrame(() => {
+            setFinishedA1Mover(m => ({ ...m, x: toPos.x, y: toPos.y, isTransitioning: true }));
+
+            animationTimeoutRef.current = window.setTimeout(() => {
+                setFinishedA1Mover(m => ({ ...m, visible: false, isTransitioning: false }));
+                onComplete();
+            }, effectiveDurationMs);
+        });
+    }, [timeMultiplier, elementRefs.operatorA1, elementRefs.a1FinishedArea]);
+
+    const animateFinishedA2 = useCallback((onComplete: () => void) => {
+        const fromPos = getPosition(elementRefs.operatorA2.current);
+        const toPos = getPosition(elementRefs.a2FinishedArea.current);
+        const effectiveDurationMs = Math.max(500 / timeMultiplier, 100);
+
+        const pieceContent = <div className="text-4xl">⚙️</div>;
+        setFinishedA2Mover({ visible: true, x: fromPos.x, y: fromPos.y, isTransitioning: false, content: pieceContent });
+
+        animationFrameRef.current = requestAnimationFrame(() => {
+            setFinishedA2Mover(m => ({ ...m, x: toPos.x, y: toPos.y, isTransitioning: true }));
+
+            animationTimeoutRef.current = window.setTimeout(() => {
+                setFinishedA2Mover(m => ({ ...m, visible: false, isTransitioning: false }));
+                onComplete();
+            }, effectiveDurationMs);
+        });
+    }, [timeMultiplier, elementRefs.operatorA2, elementRefs.a2FinishedArea]);
+
     const tick = useCallback(() => {
         if (isAnimating || !simState) return;
         
@@ -649,6 +688,8 @@ export default function App() {
                 setA1Animation(a => ({...a, visible: false}));
                 // Add to delivery queue for FIFO refill
                 newState.deliveryQueue.push('A1');
+                // Animate finished piece to finished area
+                animateFinishedA1(() => {});
             }
         } else { // If not working (Idle or Starved), check for materials
             if (newState.locations.a1In.fullA1 > 0) {
@@ -723,6 +764,8 @@ export default function App() {
                 setA2Animation(a => ({...a, visible: false}));
                 // Add to delivery queue for FIFO refill
                 newState.deliveryQueue.push('A2');
+                // Animate finished piece to finished area
+                animateFinishedA2(() => {});
             }
         } else { // If not working (Idle or Starved), check for materials
             if (newState.locations.a2In.fullA2 > 0) {
@@ -1348,6 +1391,23 @@ export default function App() {
                     transition: emptyToPMover.isTransitioning ? `left ${materialMoveDuration}ms ease-in-out, top ${materialMoveDuration}ms ease-in-out, opacity 0.2s linear` : 'opacity 0.2s linear',
                 }}
             >{emptyToPMover.content}</div>
+            {/* Finished Piece Movers */}
+            <div
+                className="fixed z-40 pointer-events-none"
+                style={{
+                    left: finishedA1Mover.x, top: finishedA1Mover.y, transform: 'translate(-50%, -50%)',
+                    opacity: finishedA1Mover.visible ? 1 : 0,
+                    transition: finishedA1Mover.isTransitioning ? `left 500ms ease-in-out, top 500ms ease-in-out, opacity 0.2s linear` : 'opacity 0.2s linear',
+                }}
+            >{finishedA1Mover.content}</div>
+            <div
+                className="fixed z-40 pointer-events-none"
+                style={{
+                    left: finishedA2Mover.x, top: finishedA2Mover.y, transform: 'translate(-50%, -50%)',
+                    opacity: finishedA2Mover.visible ? 1 : 0,
+                    transition: finishedA2Mover.isTransitioning ? `left 500ms ease-in-out, top 500ms ease-in-out, opacity 0.2s linear` : 'opacity 0.2s linear',
+                }}
+            >{finishedA2Mover.content}</div>
             {/* Assembly Animation Movers */}
             <div className={`fixed z-30 pointer-events-none ${a1Animation.visible ? 'opacity-100' : 'opacity-0'}`} style={a1Animation.style}>
                 <ContainerVisual type="A1" empty withWKanban />
@@ -1599,7 +1659,7 @@ export default function App() {
                             </div>
                         </div>
                         {/* A1 Finished Pieces */}
-                        <div className="bg-green-100 p-3 rounded-lg border-2 border-green-400">
+                        <div className="bg-green-100 p-3 rounded-lg border-2 border-green-400" ref={elementRefs.a1FinishedArea}>
                             <div className="text-center font-bold text-green-800 mb-1 text-sm">A1 Finished</div>
                             <div className="flex items-center justify-center gap-1 flex-wrap min-h-[80px]">
                                 {[...Array(Math.min(stats.throughputA1, 8))].map((_, i) => (
@@ -1660,7 +1720,7 @@ export default function App() {
                             </div>
                         </div>
                         {/* A2 Finished Pieces */}
-                        <div className="bg-orange-100 p-3 rounded-lg border-2 border-orange-400">
+                        <div className="bg-orange-100 p-3 rounded-lg border-2 border-orange-400" ref={elementRefs.a2FinishedArea}>
                             <div className="text-center font-bold text-orange-800 mb-1 text-sm">A2 Finished</div>
                             <div className="flex items-center justify-center gap-1 flex-wrap min-h-[80px]">
                                 {[...Array(Math.min(stats.throughputA2, 8))].map((_, i) => (
