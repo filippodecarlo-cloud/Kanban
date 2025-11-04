@@ -283,6 +283,8 @@ export default function App() {
     const [pMover, setPMover] = useState<{ visible: boolean; x: number; y: number; isTransitioning: boolean }>({ visible: false, x: 0, y: 0, isTransitioning: false });
     const [a1Mover, setA1Mover] = useState<{ visible: boolean; x: number; y: number; isTransitioning: boolean }>({ visible: false, x: 0, y: 0, isTransitioning: false });
     const [a2Mover, setA2Mover] = useState<{ visible: boolean; x: number; y: number; isTransitioning: boolean }>({ visible: false, x: 0, y: 0, isTransitioning: false });
+    const [finishedA1Mover, setFinishedA1Mover] = useState<MovingElement>({ visible: false, x: 0, y: 0, isTransitioning: false, content: null });
+    const [finishedA2Mover, setFinishedA2Mover] = useState<MovingElement>({ visible: false, x: 0, y: 0, isTransitioning: false, content: null });
     const [history, setHistory] = useState<HistoryEntry[]>([]);
 
     const [a1Animation, setA1Animation] = useState<AssemblyAnimationState>({ visible: false, product: 'A1', style: {} });
@@ -302,6 +304,7 @@ export default function App() {
         a2InArea: useRef<HTMLDivElement>(null), a2OutArea: useRef<HTMLDivElement>(null),
         pInArea: useRef<HTMLDivElement>(null), pOutArea: useRef<HTMLDivElement>(null),
         pFinishedArea: useRef<HTMLDivElement>(null), heijunkaBox: useRef<HTMLDivElement>(null),
+        a1FinishedArea: useRef<HTMLDivElement>(null), a2FinishedArea: useRef<HTMLDivElement>(null),
     };
     
     const [initialPositions, setInitialPositions] = useState({ mHome: { x: 0, y: 0 } });
@@ -553,49 +556,98 @@ export default function App() {
         const moveDuration = Math.max(config.moveTimeM * 1000 / timeMultiplier, 150);
         const pickDuration = Math.max(config.actionTimeM * 500 / timeMultiplier, 100);
 
-        // Step 1: Show P at home position
+        // Prepare item content
+        const largeKanban = <div className={`w-[50px] h-[40px] rounded-md border-2 text-white text-lg font-bold flex items-center justify-center shadow-lg ${productType === 'A2' ? 'bg-gradient-to-br from-red-600 to-red-500 border-red-800' : 'bg-gradient-to-br from-pink-500 to-pink-400 border-pink-700'}`}>P</div>;
+        const emptyContainer = <ContainerVisual type={productType} empty />;
+
+        // Step 0: Hide any existing items from previous animations
+        setKanbanMover({ visible: false, x: 0, y: 0, isTransitioning: false, content: null });
+        setEmptyToPMover({ visible: false, x: 0, y: 0, isTransitioning: false, content: null });
+
+        // Step 1: Show P at home position (no items yet)
         setPMover({ visible: true, x: pHomePos.x, y: pHomePos.y, isTransitioning: false });
 
         // Step 2: Move P to Heijunka box
         animationFrameRef.current = requestAnimationFrame(() => {
             setPMover(p => ({ ...p, x: heijunkaPos.x, y: heijunkaPos.y, isTransitioning: true }));
 
-            // Step 3: After arriving at Heijunka, pick Kanban then move to P-IN
+            // Step 3: After arriving at Heijunka, pick Kanban
             animationTimeoutRef.current = window.setTimeout(() => {
-                onPickKanban(); // Remove Kanban from Heijunka now
-                setPMover(p => ({ ...p, x: pInPos.x, y: pInPos.y, isTransitioning: true }));
+                onPickKanban(); // Remove Kanban from Heijunka display
 
-                // Step 4: After arriving at P-IN, pick container then return home
-                animationTimeoutRef.current = window.setTimeout(() => {
-                    onPickContainer(); // Remove container from P-IN now
-                    setPMover(p => ({ ...p, x: pHomePos.x, y: pHomePos.y, isTransitioning: true }));
+                // Show kanban with operator at Heijunka position
+                setKanbanMover({ visible: true, x: heijunkaPos.x, y: heijunkaPos.y, isTransitioning: false, content: largeKanban });
 
-                    // Step 5: After returning home, hide P mover and show materials
+                // Small pause to show pickup action
+                setTimeout(() => {
+                    // Step 4: Move P + Kanban to P-IN together
+                    setPMover(p => ({ ...p, x: pInPos.x, y: pInPos.y, isTransitioning: true }));
+                    setKanbanMover(k => ({ ...k, x: pInPos.x, y: pInPos.y, isTransitioning: true }));
+
+                    // Step 5: After arriving at P-IN, pick container
                     animationTimeoutRef.current = window.setTimeout(() => {
-                        setPMover(p => ({ ...p, visible: false, isTransitioning: false }));
+                        onPickContainer(); // Remove container from P-IN display
 
-                        // Materials appear at P position (P brought them back)
-                        const toPPos = getPosition(elementRefs.operatorP.current);
-                        const effectiveDurationMs = Math.max(P_MATERIAL_MOVE_DURATION_S * 1000 / timeMultiplier, 100);
+                        // Show container with operator and kanban at P-IN position
+                        setEmptyToPMover({ visible: true, x: pInPos.x, y: pInPos.y, isTransitioning: false, content: emptyContainer });
 
-                        // Show Kanban and container starting from P position
-                        setKanbanMover({ visible: true, x: toPPos.x, y: toPPos.y, isTransitioning: false, content: <MiniKanban type={productType} /> });
-                        setEmptyToPMover({ visible: true, x: toPPos.x, y: toPPos.y, isTransitioning: false, content: <ContainerVisual type={productType} empty /> });
+                        // Small pause to show pickup action
+                        setTimeout(() => {
+                            // Step 6: Move P + Kanban + Container back home together
+                            setPMover(p => ({ ...p, x: pHomePos.x, y: pHomePos.y, isTransitioning: true }));
+                            setKanbanMover(k => ({ ...k, x: pHomePos.x, y: pHomePos.y, isTransitioning: true }));
+                            setEmptyToPMover(e => ({ ...e, x: pHomePos.x, y: pHomePos.y, isTransitioning: true }));
 
-                        // Brief pause then fade them out as P starts working
-                        animationFrameRef.current = requestAnimationFrame(() => {
+                            // Step 7: After returning home, hide everything and start working
                             animationTimeoutRef.current = window.setTimeout(() => {
+                                setPMover(p => ({ ...p, visible: false, isTransitioning: false }));
                                 setKanbanMover(k => ({ ...k, visible: false, isTransitioning: false }));
                                 setEmptyToPMover(e => ({ ...e, visible: false, isTransitioning: false }));
                                 setIsAnimating(false);
                                 onComplete();
-                            }, effectiveDurationMs);
-                        });
-                    }, moveDuration + pickDuration);
-                }, moveDuration + pickDuration);
-            }, moveDuration + pickDuration);
+                            }, moveDuration);
+                        }, pickDuration);
+                    }, moveDuration);
+                }, pickDuration);
+            }, moveDuration);
         });
     }, [timeMultiplier, config.moveTimeM, config.actionTimeM, elementRefs.operatorP, elementRefs.heijunkaBox, elementRefs.pInArea]);
+
+    const animateFinishedA1 = useCallback((onComplete: () => void) => {
+        const fromPos = getPosition(elementRefs.operatorA1.current);
+        const toPos = getPosition(elementRefs.a1FinishedArea.current);
+        const effectiveDurationMs = Math.max(500 / timeMultiplier, 100);
+
+        const pieceContent = <div className="text-4xl">📦</div>;
+        setFinishedA1Mover({ visible: true, x: fromPos.x, y: fromPos.y, isTransitioning: false, content: pieceContent });
+
+        animationFrameRef.current = requestAnimationFrame(() => {
+            setFinishedA1Mover(m => ({ ...m, x: toPos.x, y: toPos.y, isTransitioning: true }));
+
+            animationTimeoutRef.current = window.setTimeout(() => {
+                setFinishedA1Mover(m => ({ ...m, visible: false, isTransitioning: false }));
+                onComplete();
+            }, effectiveDurationMs);
+        });
+    }, [timeMultiplier, elementRefs.operatorA1, elementRefs.a1FinishedArea]);
+
+    const animateFinishedA2 = useCallback((onComplete: () => void) => {
+        const fromPos = getPosition(elementRefs.operatorA2.current);
+        const toPos = getPosition(elementRefs.a2FinishedArea.current);
+        const effectiveDurationMs = Math.max(500 / timeMultiplier, 100);
+
+        const pieceContent = <div className="text-4xl">⚙️</div>;
+        setFinishedA2Mover({ visible: true, x: fromPos.x, y: fromPos.y, isTransitioning: false, content: pieceContent });
+
+        animationFrameRef.current = requestAnimationFrame(() => {
+            setFinishedA2Mover(m => ({ ...m, x: toPos.x, y: toPos.y, isTransitioning: true }));
+
+            animationTimeoutRef.current = window.setTimeout(() => {
+                setFinishedA2Mover(m => ({ ...m, visible: false, isTransitioning: false }));
+                onComplete();
+            }, effectiveDurationMs);
+        });
+    }, [timeMultiplier, elementRefs.operatorA2, elementRefs.a2FinishedArea]);
 
     const tick = useCallback(() => {
         if (isAnimating || !simState) return;
@@ -636,6 +688,8 @@ export default function App() {
                 setA1Animation(a => ({...a, visible: false}));
                 // Add to delivery queue for FIFO refill
                 newState.deliveryQueue.push('A1');
+                // Animate finished piece to finished area
+                animateFinishedA1(() => {});
             }
         } else { // If not working (Idle or Starved), check for materials
             if (newState.locations.a1In.fullA1 > 0) {
@@ -710,6 +764,8 @@ export default function App() {
                 setA2Animation(a => ({...a, visible: false}));
                 // Add to delivery queue for FIFO refill
                 newState.deliveryQueue.push('A2');
+                // Animate finished piece to finished area
+                animateFinishedA2(() => {});
             }
         } else { // If not working (Idle or Starved), check for materials
             if (newState.locations.a2In.fullA2 > 0) {
@@ -1335,6 +1391,23 @@ export default function App() {
                     transition: emptyToPMover.isTransitioning ? `left ${materialMoveDuration}ms ease-in-out, top ${materialMoveDuration}ms ease-in-out, opacity 0.2s linear` : 'opacity 0.2s linear',
                 }}
             >{emptyToPMover.content}</div>
+            {/* Finished Piece Movers */}
+            <div
+                className="fixed z-40 pointer-events-none"
+                style={{
+                    left: finishedA1Mover.x, top: finishedA1Mover.y, transform: 'translate(-50%, -50%)',
+                    opacity: finishedA1Mover.visible ? 1 : 0,
+                    transition: finishedA1Mover.isTransitioning ? `left 500ms ease-in-out, top 500ms ease-in-out, opacity 0.2s linear` : 'opacity 0.2s linear',
+                }}
+            >{finishedA1Mover.content}</div>
+            <div
+                className="fixed z-40 pointer-events-none"
+                style={{
+                    left: finishedA2Mover.x, top: finishedA2Mover.y, transform: 'translate(-50%, -50%)',
+                    opacity: finishedA2Mover.visible ? 1 : 0,
+                    transition: finishedA2Mover.isTransitioning ? `left 500ms ease-in-out, top 500ms ease-in-out, opacity 0.2s linear` : 'opacity 0.2s linear',
+                }}
+            >{finishedA2Mover.content}</div>
             {/* Assembly Animation Movers */}
             <div className={`fixed z-30 pointer-events-none ${a1Animation.visible ? 'opacity-100' : 'opacity-0'}`} style={a1Animation.style}>
                 <ContainerVisual type="A1" empty withWKanban />
@@ -1536,7 +1609,7 @@ export default function App() {
                                <Operator name="P" state={simState.p} type="P" />
                            </div>
                            {/* Show P-Kanban when working */}
-                           {(simState.p.status === 'Working' || simState.p.status === 'Preparing') && simState.p.producingType && (
+                           {simState.p.status === 'Working' && simState.p.producingType && (
                                <div className="absolute -top-2 -right-2">
                                    <MiniKanban type={simState.p.producingType} />
                                </div>
@@ -1553,7 +1626,9 @@ export default function App() {
                 {/* Assembly Area */}
                 <div className="bg-blue-50 border-4 border-blue-300 rounded-lg p-6">
                     <h2 className="text-xl font-bold text-blue-800 mb-4">Assembly Department</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+
+                    {/* A1 Line */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                          {/* A1-IN */}
                          <div ref={elementRefs.a1InArea}>
                              <StorageArea title="A1-IN" subtitle="Full (from M)" count={loc.a1In.fullA1} maxCapacity={config.numKanbanPairsA1 + 2} headerColor="bg-red-800">
@@ -1566,7 +1641,7 @@ export default function App() {
                                  </div>
                              </StorageArea>
                          </div>
-                        {/* A1 */}
+                        {/* A1 Operator */}
                         <div className="flex flex-col items-center justify-center relative" ref={elementRefs.operatorA1}>
                             <div style={{ opacity: a1Mover.visible ? 0 : 1 }}>
                                 <Operator name="A1" state={simState.a1} type="A" />
@@ -1576,42 +1651,45 @@ export default function App() {
                             <div className="text-xs text-gray-500">(Ideal: {idealRateA1} p/min)</div>
                         </div>
                         {/* A1-OUT */}
-                        <div className="bg-gray-200 p-4 rounded-lg" ref={elementRefs.a1OutArea}><div className="bg-red-800 text-white font-bold text-center py-2 rounded-md mb-2">A1-OUT</div><div className="text-center text-sm text-gray-700">Empty (for M)</div><div className="flex items-center justify-center flex-wrap gap-2 p-2 min-h-[100px]">{[...Array(Math.max(0, loc.a1Out.emptyA1))].map((_,i) => <ContainerVisual key={`a1o-${i}`} type="A1" empty withWKanban />)}</div></div>
-                         {/* Mizusumashi Home Base */}
-                        <div className="lg:col-span-2 flex items-center justify-center">
-                           <div ref={elementRefs.operatorM} className="opacity-0 pointer-events-none">
-                                <Operator name="M" state={simState.m} type="M" />
-                           </div>
+                        <div className="bg-gray-200 p-4 rounded-lg" ref={elementRefs.a1OutArea}>
+                            <div className="bg-red-800 text-white font-bold text-center py-2 rounded-md mb-2">A1-OUT</div>
+                            <div className="text-center text-sm text-gray-700">Empty (for M)</div>
+                            <div className="flex items-center justify-center flex-wrap gap-2 p-2 min-h-[100px]">
+                                {[...Array(Math.max(0, loc.a1Out.emptyA1))].map((_,i) => <ContainerVisual key={`a1o-${i}`} type="A1" empty withWKanban />)}
+                            </div>
+                        </div>
+                        {/* A1 Finished Pieces */}
+                        <div className="bg-green-100 p-3 rounded-lg border-2 border-green-400" ref={elementRefs.a1FinishedArea}>
+                            <div className="text-center font-bold text-green-800 mb-1 text-sm">A1 Finished</div>
+                            <div className="flex items-center justify-center gap-1 flex-wrap min-h-[80px]">
+                                {[...Array(Math.min(stats.throughputA1, 8))].map((_, i) => (
+                                    <div key={`fa1-${i}`} className="text-2xl">📦</div>
+                                ))}
+                                {stats.throughputA1 > 8 && (
+                                    <div className="text-base font-bold text-green-800">+{stats.throughputA1 - 8}</div>
+                                )}
+                            </div>
+                            <div className="text-center text-xs font-semibold text-green-800 mt-1">Total: {stats.throughputA1}</div>
                         </div>
                     </div>
-                     {/* Finished Pieces Area */}
-                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-                        <div className="bg-green-100 p-3 rounded-lg border-2 border-green-400">
-                            <div className="text-center font-bold text-green-800 mb-2">A1 Finished Pieces</div>
-                            <div className="flex items-center justify-center gap-2 flex-wrap min-h-[60px]">
-                                {[...Array(Math.min(stats.throughputA1, 10))].map((_, i) => (
-                                    <div key={`fa1-${i}`} className="text-3xl">📦</div>
-                                ))}
-                                {stats.throughputA1 > 10 && (
-                                    <div className="text-lg font-bold text-green-800">+{stats.throughputA1 - 10}</div>
-                                )}
-                            </div>
-                            <div className="text-center text-sm font-semibold text-green-800 mt-1">Total: {stats.throughputA1}</div>
+
+                    {/* Mizusumashi Status - Compact & Centered */}
+                    <div className="flex justify-center my-4">
+                        <div className="bg-green-50 px-6 py-2 rounded-full border-2 border-green-400 inline-flex items-center gap-3">
+                            <div className="text-sm font-bold text-green-700">M:</div>
+                            <div className="text-sm text-gray-800 font-semibold">{STATUS_SHORT_NAMES[simState.m.status as M_Status] || simState.m.status}</div>
+                            {simState.m.timer > 0 && simState.m.status !== M_Status.IDLE && (
+                                <div className="text-xs text-gray-600">({simState.m.timer.toFixed(1)}s)</div>
+                            )}
                         </div>
-                        <div className="bg-orange-100 p-3 rounded-lg border-2 border-orange-400">
-                            <div className="text-center font-bold text-orange-800 mb-2">A2 Finished Pieces</div>
-                            <div className="flex items-center justify-center gap-2 flex-wrap min-h-[60px]">
-                                {[...Array(Math.min(stats.throughputA2, 10))].map((_, i) => (
-                                    <div key={`fa2-${i}`} className="text-3xl">⚙️</div>
-                                ))}
-                                {stats.throughputA2 > 10 && (
-                                    <div className="text-lg font-bold text-orange-800">+{stats.throughputA2 - 10}</div>
-                                )}
-                            </div>
-                            <div className="text-center text-sm font-semibold text-orange-800 mt-1">Total: {stats.throughputA2}</div>
+                        {/* Mizusumashi Home Base - Hidden */}
+                        <div ref={elementRefs.operatorM} className="opacity-0 pointer-events-none absolute">
+                            <Operator name="M" state={simState.m} type="M" />
                         </div>
-                     </div>
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
+                    </div>
+
+                    {/* A2 Line */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         {/* A2-IN */}
                         <div ref={elementRefs.a2InArea}>
                             <StorageArea title="A2-IN" subtitle="Full (from M)" count={loc.a2In.fullA2} maxCapacity={config.numKanbanPairsA2 + 2} headerColor="bg-orange-800">
@@ -1624,7 +1702,7 @@ export default function App() {
                                 </div>
                             </StorageArea>
                         </div>
-                        {/* A2 */}
+                        {/* A2 Operator */}
                          <div className="flex flex-col items-center justify-center relative" ref={elementRefs.operatorA2}>
                             <div style={{ opacity: a2Mover.visible ? 0 : 1 }}>
                                 <Operator name="A2" state={simState.a2} type="A" />
@@ -1634,14 +1712,25 @@ export default function App() {
                              <div className="text-xs text-gray-500">(Ideal: {idealRateA2} p/min)</div>
                         </div>
                         {/* A2-OUT */}
-                        <div className="bg-gray-200 p-4 rounded-lg" ref={elementRefs.a2OutArea}><div className="bg-orange-800 text-white font-bold text-center py-2 rounded-md mb-2">A2-OUT</div><div className="text-center text-sm text-gray-700">Empty (for M)</div><div className="flex items-center justify-center flex-wrap gap-2 p-2 min-h-[100px]">{[...Array(Math.max(0, loc.a2Out.emptyA2))].map((_,i) => <ContainerVisual key={`a2o-${i}`} type="A2" empty withWKanban />)}</div></div>
-                        {/* M Status Display - Fixed Position */}
-                        <div className="lg:col-span-2 bg-gray-100 p-4 rounded-lg border-2 border-green-500 flex flex-col items-center justify-center">
-                            <div className="text-lg font-bold text-green-700 mb-2">Mizusumashi (M) Status</div>
-                            <div className="text-base text-gray-800 font-semibold min-h-[1.5em]">{STATUS_SHORT_NAMES[simState.m.status as M_Status] || simState.m.status}</div>
-                            <div className="text-sm text-gray-600 min-h-[1.2em]">
-                                {simState.m.timer > 0 && simState.m.status !== M_Status.IDLE ? `(${simState.m.timer.toFixed(1)}s)` : ''}
+                        <div className="bg-gray-200 p-4 rounded-lg" ref={elementRefs.a2OutArea}>
+                            <div className="bg-orange-800 text-white font-bold text-center py-2 rounded-md mb-2">A2-OUT</div>
+                            <div className="text-center text-sm text-gray-700">Empty (for M)</div>
+                            <div className="flex items-center justify-center flex-wrap gap-2 p-2 min-h-[100px]">
+                                {[...Array(Math.max(0, loc.a2Out.emptyA2))].map((_,i) => <ContainerVisual key={`a2o-${i}`} type="A2" empty withWKanban />)}
                             </div>
+                        </div>
+                        {/* A2 Finished Pieces */}
+                        <div className="bg-orange-100 p-3 rounded-lg border-2 border-orange-400" ref={elementRefs.a2FinishedArea}>
+                            <div className="text-center font-bold text-orange-800 mb-1 text-sm">A2 Finished</div>
+                            <div className="flex items-center justify-center gap-1 flex-wrap min-h-[80px]">
+                                {[...Array(Math.min(stats.throughputA2, 8))].map((_, i) => (
+                                    <div key={`fa2-${i}`} className="text-2xl">⚙️</div>
+                                ))}
+                                {stats.throughputA2 > 8 && (
+                                    <div className="text-base font-bold text-orange-800">+{stats.throughputA2 - 8}</div>
+                                )}
+                            </div>
+                            <div className="text-center text-xs font-semibold text-orange-800 mt-1">Total: {stats.throughputA2}</div>
                         </div>
                     </div>
                 </div>
