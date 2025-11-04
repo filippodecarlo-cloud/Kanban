@@ -553,47 +553,56 @@ export default function App() {
         const moveDuration = Math.max(config.moveTimeM * 1000 / timeMultiplier, 150);
         const pickDuration = Math.max(config.actionTimeM * 500 / timeMultiplier, 100);
 
-        // Step 1: Show P at home position
+        // Prepare item content
+        const largeKanban = <div className={`w-[50px] h-[40px] rounded-md border-2 text-white text-lg font-bold flex items-center justify-center shadow-lg ${productType === 'A2' ? 'bg-gradient-to-br from-red-600 to-red-500 border-red-800' : 'bg-gradient-to-br from-pink-500 to-pink-400 border-pink-700'}`}>P</div>;
+        const emptyContainer = <ContainerVisual type={productType} empty />;
+
+        // Step 1: Show P at home position (no items yet)
         setPMover({ visible: true, x: pHomePos.x, y: pHomePos.y, isTransitioning: false });
 
         // Step 2: Move P to Heijunka box
         animationFrameRef.current = requestAnimationFrame(() => {
             setPMover(p => ({ ...p, x: heijunkaPos.x, y: heijunkaPos.y, isTransitioning: true }));
 
-            // Step 3: After arriving at Heijunka, pick Kanban then move to P-IN
+            // Step 3: After arriving at Heijunka, pick Kanban
             animationTimeoutRef.current = window.setTimeout(() => {
-                onPickKanban(); // Remove Kanban from Heijunka now
-                setPMover(p => ({ ...p, x: pInPos.x, y: pInPos.y, isTransitioning: true }));
+                onPickKanban(); // Remove Kanban from Heijunka display
 
-                // Step 4: After arriving at P-IN, pick container then return home
-                animationTimeoutRef.current = window.setTimeout(() => {
-                    onPickContainer(); // Remove container from P-IN now
-                    setPMover(p => ({ ...p, x: pHomePos.x, y: pHomePos.y, isTransitioning: true }));
+                // Show kanban with operator at Heijunka position
+                setKanbanMover({ visible: true, x: heijunkaPos.x, y: heijunkaPos.y, isTransitioning: false, content: largeKanban });
 
-                    // Step 5: After returning home, hide P mover and show materials
+                // Small pause to show pickup action
+                setTimeout(() => {
+                    // Step 4: Move P + Kanban to P-IN together
+                    setPMover(p => ({ ...p, x: pInPos.x, y: pInPos.y, isTransitioning: true }));
+                    setKanbanMover(k => ({ ...k, x: pInPos.x, y: pInPos.y, isTransitioning: true }));
+
+                    // Step 5: After arriving at P-IN, pick container
                     animationTimeoutRef.current = window.setTimeout(() => {
-                        setPMover(p => ({ ...p, visible: false, isTransitioning: false }));
+                        onPickContainer(); // Remove container from P-IN display
 
-                        // Materials appear at P position (P brought them back)
-                        const toPPos = getPosition(elementRefs.operatorP.current);
-                        const effectiveDurationMs = Math.max(P_MATERIAL_MOVE_DURATION_S * 1000 / timeMultiplier, 100);
+                        // Show container with operator and kanban at P-IN position
+                        setEmptyToPMover({ visible: true, x: pInPos.x, y: pInPos.y, isTransitioning: false, content: emptyContainer });
 
-                        // Show Kanban and container starting from P position
-                        setKanbanMover({ visible: true, x: toPPos.x, y: toPPos.y, isTransitioning: false, content: <MiniKanban type={productType} /> });
-                        setEmptyToPMover({ visible: true, x: toPPos.x, y: toPPos.y, isTransitioning: false, content: <ContainerVisual type={productType} empty /> });
+                        // Small pause to show pickup action
+                        setTimeout(() => {
+                            // Step 6: Move P + Kanban + Container back home together
+                            setPMover(p => ({ ...p, x: pHomePos.x, y: pHomePos.y, isTransitioning: true }));
+                            setKanbanMover(k => ({ ...k, x: pHomePos.x, y: pHomePos.y, isTransitioning: true }));
+                            setEmptyToPMover(e => ({ ...e, x: pHomePos.x, y: pHomePos.y, isTransitioning: true }));
 
-                        // Brief pause then fade them out as P starts working
-                        animationFrameRef.current = requestAnimationFrame(() => {
+                            // Step 7: After returning home, hide everything and start working
                             animationTimeoutRef.current = window.setTimeout(() => {
+                                setPMover(p => ({ ...p, visible: false, isTransitioning: false }));
                                 setKanbanMover(k => ({ ...k, visible: false, isTransitioning: false }));
                                 setEmptyToPMover(e => ({ ...e, visible: false, isTransitioning: false }));
                                 setIsAnimating(false);
                                 onComplete();
-                            }, effectiveDurationMs);
-                        });
-                    }, moveDuration + pickDuration);
-                }, moveDuration + pickDuration);
-            }, moveDuration + pickDuration);
+                            }, moveDuration);
+                        }, pickDuration);
+                    }, moveDuration);
+                }, pickDuration);
+            }, moveDuration);
         });
     }, [timeMultiplier, config.moveTimeM, config.actionTimeM, elementRefs.operatorP, elementRefs.heijunkaBox, elementRefs.pInArea]);
 
