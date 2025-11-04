@@ -556,8 +556,12 @@ export default function App() {
         const moveDuration = Math.max(config.moveTimeM * 1000 / timeMultiplier, 150);
         const pickDuration = Math.max(config.actionTimeM * 500 / timeMultiplier, 100);
 
-        // Prepare item content
-        const largeKanban = <div className={`w-[50px] h-[40px] rounded-md border-2 text-white text-lg font-bold flex items-center justify-center shadow-lg ${productType === 'A2' ? 'bg-gradient-to-br from-red-600 to-red-500 border-red-800' : 'bg-gradient-to-br from-pink-500 to-pink-400 border-pink-700'}`}>P</div>;
+        // Prepare item content - use same size as in Heijunka Box
+        const kanbanP = <div className={`relative w-[35px] h-[25px] rounded-sm border-[1.5px] text-white text-[8px] font-bold flex flex-col items-center justify-center shadow-md transition-all hover:scale-110 hover:shadow-xl ${productType === 'A2' ? 'bg-gradient-to-br from-red-600 to-red-500 border-red-800' : 'bg-gradient-to-br from-pink-500 to-pink-400 border-pink-700'}`}>
+            <div className="text-[10px]">P</div>
+            <div className="text-[6px] opacity-80 absolute bottom-0">{productType}</div>
+            <div className="absolute inset-0 bg-gradient-to-br from-white opacity-20 rounded-sm pointer-events-none" />
+        </div>;
         const emptyContainer = <ContainerVisual type={productType} empty />;
 
         // Step 0: Hide any existing items from previous animations
@@ -576,7 +580,7 @@ export default function App() {
                 onPickKanban(); // Remove Kanban from Heijunka display
 
                 // Show kanban with operator at Heijunka position
-                setKanbanMover({ visible: true, x: heijunkaPos.x, y: heijunkaPos.y, isTransitioning: false, content: largeKanban });
+                setKanbanMover({ visible: true, x: heijunkaPos.x, y: heijunkaPos.y, isTransitioning: false, content: kanbanP });
 
                 // Small pause to show pickup action
                 setTimeout(() => {
@@ -1386,7 +1390,7 @@ export default function App() {
                 style={{
                     left: kanbanMover.x, top: kanbanMover.y, transform: 'translate(-50%, -50%)',
                     opacity: kanbanMover.visible ? 1 : 0,
-                    transition: kanbanMover.isTransitioning ? `left ${materialMoveDuration}ms ease-in-out, top ${materialMoveDuration}ms ease-in-out, opacity 0.2s linear` : 'opacity 0.2s linear',
+                    transition: kanbanMover.isTransitioning ? `left ${mizuMoveDuration}ms ease-in-out, top ${mizuMoveDuration}ms ease-in-out, opacity 0.2s linear` : 'opacity 0.2s linear',
                 }}
             >{kanbanMover.content}</div>
             <div
@@ -1394,7 +1398,7 @@ export default function App() {
                 style={{
                     left: emptyToPMover.x, top: emptyToPMover.y, transform: 'translate(-50%, -50%)',
                     opacity: emptyToPMover.visible ? 1 : 0,
-                    transition: emptyToPMover.isTransitioning ? `left ${materialMoveDuration}ms ease-in-out, top ${materialMoveDuration}ms ease-in-out, opacity 0.2s linear` : 'opacity 0.2s linear',
+                    transition: emptyToPMover.isTransitioning ? `left ${mizuMoveDuration}ms ease-in-out, top ${mizuMoveDuration}ms ease-in-out, opacity 0.2s linear` : 'opacity 0.2s linear',
                 }}
             >{emptyToPMover.content}</div>
             {/* Assembly Animation Movers */}
@@ -1616,7 +1620,7 @@ export default function App() {
                            </div>
                            {/* Show P-Kanban when working */}
                            {simState.p.status === 'Working' && simState.p.producingType && (
-                               <div className="absolute -top-2 -right-2">
+                               <div className="absolute top-1 -right-1">
                                    <MiniKanban type={simState.p.producingType} />
                                </div>
                            )}
