@@ -283,6 +283,8 @@ export default function App() {
     const [pMover, setPMover] = useState<{ visible: boolean; x: number; y: number; isTransitioning: boolean }>({ visible: false, x: 0, y: 0, isTransitioning: false });
     const [a1Mover, setA1Mover] = useState<{ visible: boolean; x: number; y: number; isTransitioning: boolean }>({ visible: false, x: 0, y: 0, isTransitioning: false });
     const [a2Mover, setA2Mover] = useState<{ visible: boolean; x: number; y: number; isTransitioning: boolean }>({ visible: false, x: 0, y: 0, isTransitioning: false });
+    const [finishedA1Mover, setFinishedA1Mover] = useState<MovingElement>({ visible: false, x: 0, y: 0, isTransitioning: false, content: null });
+    const [finishedA2Mover, setFinishedA2Mover] = useState<MovingElement>({ visible: false, x: 0, y: 0, isTransitioning: false, content: null });
     const [history, setHistory] = useState<HistoryEntry[]>([]);
 
     const [a1Animation, setA1Animation] = useState<AssemblyAnimationState>({ visible: false, product: 'A1', style: {} });
@@ -650,6 +652,19 @@ export default function App() {
                 setA1Animation(a => ({...a, visible: false}));
                 // Add to delivery queue for FIFO refill
                 newState.deliveryQueue.push('A1');
+
+                // Animate finished piece to Finished area
+                const fromPos = getPosition(elementRefs.operatorA1.current);
+                const toPos = getPosition(elementRefs.a1FinishedArea.current);
+                const durationMs = Math.max(500 / timeMultiplier, 100);
+
+                setFinishedA1Mover({ visible: true, x: fromPos.x, y: fromPos.y, isTransitioning: false, content: <div className="text-4xl">📦</div> });
+                requestAnimationFrame(() => {
+                    setFinishedA1Mover(m => ({ ...m, x: toPos.x, y: toPos.y, isTransitioning: true }));
+                    setTimeout(() => {
+                        setFinishedA1Mover(m => ({ ...m, visible: false, isTransitioning: false }));
+                    }, durationMs);
+                });
             }
         } else { // If not working (Idle or Starved), check for materials
             if (newState.locations.a1In.fullA1 > 0) {
@@ -685,9 +700,9 @@ export default function App() {
                         setTimeout(() => {
                             setA1Mover(m => ({ ...m, visible: false, isTransitioning: false }));
 
-                            // Now trigger container animation towards Finished area
+                            // Now trigger container animation towards OUT area (empty with W kanban)
                             const fromPos = getPosition(elementRefs.a1InArea.current);
-                            const toPos = getPosition(elementRefs.a1FinishedArea.current);
+                            const toPos = getPosition(elementRefs.a1OutArea.current);
                             const durationMs = Math.max(1.5 * 1000 / timeMultiplier, 100);
 
                             setA1Animation(a => ({
@@ -734,6 +749,19 @@ export default function App() {
                 setA2Animation(a => ({...a, visible: false}));
                 // Add to delivery queue for FIFO refill
                 newState.deliveryQueue.push('A2');
+
+                // Animate finished piece to Finished area
+                const fromPos = getPosition(elementRefs.operatorA2.current);
+                const toPos = getPosition(elementRefs.a2FinishedArea.current);
+                const durationMs = Math.max(500 / timeMultiplier, 100);
+
+                setFinishedA2Mover({ visible: true, x: fromPos.x, y: fromPos.y, isTransitioning: false, content: <div className="text-4xl">⚙️</div> });
+                requestAnimationFrame(() => {
+                    setFinishedA2Mover(m => ({ ...m, x: toPos.x, y: toPos.y, isTransitioning: true }));
+                    setTimeout(() => {
+                        setFinishedA2Mover(m => ({ ...m, visible: false, isTransitioning: false }));
+                    }, durationMs);
+                });
             }
         } else { // If not working (Idle or Starved), check for materials
             if (newState.locations.a2In.fullA2 > 0) {
@@ -769,9 +797,9 @@ export default function App() {
                         setTimeout(() => {
                             setA2Mover(m => ({ ...m, visible: false, isTransitioning: false }));
 
-                            // Now trigger container animation towards Finished area
+                            // Now trigger container animation towards OUT area (empty with W kanban)
                             const fromPos = getPosition(elementRefs.a2InArea.current);
-                            const toPos = getPosition(elementRefs.a2FinishedArea.current);
+                            const toPos = getPosition(elementRefs.a2OutArea.current);
                             const durationMs = Math.max(1.5 * 1000 / timeMultiplier, 100);
 
                             setA2Animation(a => ({
@@ -1376,6 +1404,23 @@ export default function App() {
             <div className={`fixed z-30 pointer-events-none ${a2Animation.visible ? 'opacity-100' : 'opacity-0'}`} style={a2Animation.style}>
                 <ContainerVisual type="A2" empty withWKanban />
             </div>
+            {/* Finished Piece Movers */}
+            <div
+                className="fixed z-40 pointer-events-none"
+                style={{
+                    left: finishedA1Mover.x, top: finishedA1Mover.y, transform: 'translate(-50%, -50%)',
+                    opacity: finishedA1Mover.visible ? 1 : 0,
+                    transition: finishedA1Mover.isTransitioning ? `left 500ms ease-in-out, top 500ms ease-in-out, opacity 0.2s linear` : 'opacity 0.2s linear',
+                }}
+            >{finishedA1Mover.content}</div>
+            <div
+                className="fixed z-40 pointer-events-none"
+                style={{
+                    left: finishedA2Mover.x, top: finishedA2Mover.y, transform: 'translate(-50%, -50%)',
+                    opacity: finishedA2Mover.visible ? 1 : 0,
+                    transition: finishedA2Mover.isTransitioning ? `left 500ms ease-in-out, top 500ms ease-in-out, opacity 0.2s linear` : 'opacity 0.2s linear',
+                }}
+            >{finishedA2Mover.content}</div>
 
             {/* Left Sidebar - Controls */}
             <aside className="w-96 bg-gray-50 overflow-y-auto flex-shrink-0 border-r border-gray-300">
