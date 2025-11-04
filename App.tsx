@@ -1329,7 +1329,7 @@ export default function App() {
 
             {/* Movable elements for animation */}
             <div
-                className={`fixed z-50 pointer-events-none ${mizuActionAnim === 'pick' ? 'animate-pick' : mizuActionAnim === 'drop' ? 'animate-drop' : ''}`}
+                className={`fixed z-40 pointer-events-none ${mizuActionAnim === 'pick' ? 'animate-pick' : mizuActionAnim === 'drop' ? 'animate-drop' : ''}`}
                 style={{
                     left: mizuMover.x, top: mizuMover.y, transform: 'translate(-50%, -50%)',
                     transition: mizuMover.isTransitioning ? `left ${mizuMoveDuration}ms ease-in-out, top ${mizuMoveDuration}ms ease-in-out` : 'none',
@@ -1378,7 +1378,7 @@ export default function App() {
                 👷
             </div>
             <div
-                className="fixed z-40 pointer-events-none"
+                className="fixed z-50 pointer-events-none"
                 style={{
                     left: itemMover.x, top: itemMover.y, transform: 'translate(-50%, -50%)',
                     opacity: itemMover.visible ? 1 : 0,
