@@ -653,10 +653,18 @@ export default function App() {
             }
         } else { // If not working (Idle or Starved), check for materials
             if (newState.locations.a1In.fullA1 > 0) {
-                newState.locations.a1In.fullA1--;
+                // Don't decrement material yet - wait until operator arrives at A1-IN
                 newState.a1.status = 'Working';
                 newState.a1.producingType = 'A1';
                 newState.a1.timer = config.cycleTimeA1;
+
+                // Callback to pick material when operator arrives at A1-IN
+                const onPickMaterial = () => setSimState(s => {
+                    if (!s) return null;
+                    const newS = JSON.parse(JSON.stringify(s)) as SimulationState;
+                    newS.locations.a1In.fullA1--;
+                    return newS;
+                });
 
                 // Animate operator A1 going to pick material
                 const a1HomePos = getPosition(elementRefs.operatorA1.current);
@@ -670,6 +678,8 @@ export default function App() {
                     setA1Mover(m => ({ ...m, x: a1InPos.x, y: a1InPos.y, isTransitioning: true }));
 
                     setTimeout(() => {
+                        // Operator has arrived at A1-IN, pick the material now
+                        onPickMaterial();
                         setA1Mover(m => ({ ...m, x: a1HomePos.x, y: a1HomePos.y, isTransitioning: true }));
 
                         setTimeout(() => {
@@ -727,10 +737,18 @@ export default function App() {
             }
         } else { // If not working (Idle or Starved), check for materials
             if (newState.locations.a2In.fullA2 > 0) {
-                newState.locations.a2In.fullA2--;
+                // Don't decrement material yet - wait until operator arrives at A2-IN
                 newState.a2.status = 'Working';
                 newState.a2.producingType = 'A2';
                 newState.a2.timer = config.cycleTimeA2;
+
+                // Callback to pick material when operator arrives at A2-IN
+                const onPickMaterial = () => setSimState(s => {
+                    if (!s) return null;
+                    const newS = JSON.parse(JSON.stringify(s)) as SimulationState;
+                    newS.locations.a2In.fullA2--;
+                    return newS;
+                });
 
                 // Animate operator A2 going to pick material
                 const a2HomePos = getPosition(elementRefs.operatorA2.current);
@@ -744,6 +762,8 @@ export default function App() {
                     setA2Mover(m => ({ ...m, x: a2InPos.x, y: a2InPos.y, isTransitioning: true }));
 
                     setTimeout(() => {
+                        // Operator has arrived at A2-IN, pick the material now
+                        onPickMaterial();
                         setA2Mover(m => ({ ...m, x: a2HomePos.x, y: a2HomePos.y, isTransitioning: true }));
 
                         setTimeout(() => {
