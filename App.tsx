@@ -1553,7 +1553,9 @@ export default function App() {
                 {/* Assembly Area */}
                 <div className="bg-blue-50 border-4 border-blue-300 rounded-lg p-6">
                     <h2 className="text-xl font-bold text-blue-800 mb-4">Assembly Department</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+
+                    {/* A1 Line */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                          {/* A1-IN */}
                          <div ref={elementRefs.a1InArea}>
                              <StorageArea title="A1-IN" subtitle="Full (from M)" count={loc.a1In.fullA1} maxCapacity={config.numKanbanPairsA1 + 2} headerColor="bg-red-800">
@@ -1566,7 +1568,7 @@ export default function App() {
                                  </div>
                              </StorageArea>
                          </div>
-                        {/* A1 */}
+                        {/* A1 Operator */}
                         <div className="flex flex-col items-center justify-center relative" ref={elementRefs.operatorA1}>
                             <div style={{ opacity: a1Mover.visible ? 0 : 1 }}>
                                 <Operator name="A1" state={simState.a1} type="A" />
@@ -1576,42 +1578,45 @@ export default function App() {
                             <div className="text-xs text-gray-500">(Ideal: {idealRateA1} p/min)</div>
                         </div>
                         {/* A1-OUT */}
-                        <div className="bg-gray-200 p-4 rounded-lg" ref={elementRefs.a1OutArea}><div className="bg-red-800 text-white font-bold text-center py-2 rounded-md mb-2">A1-OUT</div><div className="text-center text-sm text-gray-700">Empty (for M)</div><div className="flex items-center justify-center flex-wrap gap-2 p-2 min-h-[100px]">{[...Array(Math.max(0, loc.a1Out.emptyA1))].map((_,i) => <ContainerVisual key={`a1o-${i}`} type="A1" empty withWKanban />)}</div></div>
-                         {/* Mizusumashi Home Base */}
-                        <div className="lg:col-span-2 flex items-center justify-center">
-                           <div ref={elementRefs.operatorM} className="opacity-0 pointer-events-none">
-                                <Operator name="M" state={simState.m} type="M" />
-                           </div>
+                        <div className="bg-gray-200 p-4 rounded-lg" ref={elementRefs.a1OutArea}>
+                            <div className="bg-red-800 text-white font-bold text-center py-2 rounded-md mb-2">A1-OUT</div>
+                            <div className="text-center text-sm text-gray-700">Empty (for M)</div>
+                            <div className="flex items-center justify-center flex-wrap gap-2 p-2 min-h-[100px]">
+                                {[...Array(Math.max(0, loc.a1Out.emptyA1))].map((_,i) => <ContainerVisual key={`a1o-${i}`} type="A1" empty withWKanban />)}
+                            </div>
+                        </div>
+                        {/* A1 Finished Pieces */}
+                        <div className="bg-green-100 p-3 rounded-lg border-2 border-green-400">
+                            <div className="text-center font-bold text-green-800 mb-1 text-sm">A1 Finished</div>
+                            <div className="flex items-center justify-center gap-1 flex-wrap min-h-[80px]">
+                                {[...Array(Math.min(stats.throughputA1, 8))].map((_, i) => (
+                                    <div key={`fa1-${i}`} className="text-2xl">📦</div>
+                                ))}
+                                {stats.throughputA1 > 8 && (
+                                    <div className="text-base font-bold text-green-800">+{stats.throughputA1 - 8}</div>
+                                )}
+                            </div>
+                            <div className="text-center text-xs font-semibold text-green-800 mt-1">Total: {stats.throughputA1}</div>
                         </div>
                     </div>
-                     {/* Finished Pieces Area */}
-                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-                        <div className="bg-green-100 p-3 rounded-lg border-2 border-green-400">
-                            <div className="text-center font-bold text-green-800 mb-2">A1 Finished Pieces</div>
-                            <div className="flex items-center justify-center gap-2 flex-wrap min-h-[60px]">
-                                {[...Array(Math.min(stats.throughputA1, 10))].map((_, i) => (
-                                    <div key={`fa1-${i}`} className="text-3xl">📦</div>
-                                ))}
-                                {stats.throughputA1 > 10 && (
-                                    <div className="text-lg font-bold text-green-800">+{stats.throughputA1 - 10}</div>
-                                )}
-                            </div>
-                            <div className="text-center text-sm font-semibold text-green-800 mt-1">Total: {stats.throughputA1}</div>
+
+                    {/* Mizusumashi Status - Compact & Centered */}
+                    <div className="flex justify-center my-4">
+                        <div className="bg-green-50 px-6 py-2 rounded-full border-2 border-green-400 inline-flex items-center gap-3">
+                            <div className="text-sm font-bold text-green-700">M:</div>
+                            <div className="text-sm text-gray-800 font-semibold">{STATUS_SHORT_NAMES[simState.m.status as M_Status] || simState.m.status}</div>
+                            {simState.m.timer > 0 && simState.m.status !== M_Status.IDLE && (
+                                <div className="text-xs text-gray-600">({simState.m.timer.toFixed(1)}s)</div>
+                            )}
                         </div>
-                        <div className="bg-orange-100 p-3 rounded-lg border-2 border-orange-400">
-                            <div className="text-center font-bold text-orange-800 mb-2">A2 Finished Pieces</div>
-                            <div className="flex items-center justify-center gap-2 flex-wrap min-h-[60px]">
-                                {[...Array(Math.min(stats.throughputA2, 10))].map((_, i) => (
-                                    <div key={`fa2-${i}`} className="text-3xl">⚙️</div>
-                                ))}
-                                {stats.throughputA2 > 10 && (
-                                    <div className="text-lg font-bold text-orange-800">+{stats.throughputA2 - 10}</div>
-                                )}
-                            </div>
-                            <div className="text-center text-sm font-semibold text-orange-800 mt-1">Total: {stats.throughputA2}</div>
+                        {/* Mizusumashi Home Base - Hidden */}
+                        <div ref={elementRefs.operatorM} className="opacity-0 pointer-events-none absolute">
+                            <Operator name="M" state={simState.m} type="M" />
                         </div>
-                     </div>
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
+                    </div>
+
+                    {/* A2 Line */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         {/* A2-IN */}
                         <div ref={elementRefs.a2InArea}>
                             <StorageArea title="A2-IN" subtitle="Full (from M)" count={loc.a2In.fullA2} maxCapacity={config.numKanbanPairsA2 + 2} headerColor="bg-orange-800">
@@ -1624,7 +1629,7 @@ export default function App() {
                                 </div>
                             </StorageArea>
                         </div>
-                        {/* A2 */}
+                        {/* A2 Operator */}
                          <div className="flex flex-col items-center justify-center relative" ref={elementRefs.operatorA2}>
                             <div style={{ opacity: a2Mover.visible ? 0 : 1 }}>
                                 <Operator name="A2" state={simState.a2} type="A" />
@@ -1634,14 +1639,25 @@ export default function App() {
                              <div className="text-xs text-gray-500">(Ideal: {idealRateA2} p/min)</div>
                         </div>
                         {/* A2-OUT */}
-                        <div className="bg-gray-200 p-4 rounded-lg" ref={elementRefs.a2OutArea}><div className="bg-orange-800 text-white font-bold text-center py-2 rounded-md mb-2">A2-OUT</div><div className="text-center text-sm text-gray-700">Empty (for M)</div><div className="flex items-center justify-center flex-wrap gap-2 p-2 min-h-[100px]">{[...Array(Math.max(0, loc.a2Out.emptyA2))].map((_,i) => <ContainerVisual key={`a2o-${i}`} type="A2" empty withWKanban />)}</div></div>
-                        {/* M Status Display - Fixed Position */}
-                        <div className="lg:col-span-2 bg-gray-100 p-4 rounded-lg border-2 border-green-500 flex flex-col items-center justify-center">
-                            <div className="text-lg font-bold text-green-700 mb-2">Mizusumashi (M) Status</div>
-                            <div className="text-base text-gray-800 font-semibold min-h-[1.5em]">{STATUS_SHORT_NAMES[simState.m.status as M_Status] || simState.m.status}</div>
-                            <div className="text-sm text-gray-600 min-h-[1.2em]">
-                                {simState.m.timer > 0 && simState.m.status !== M_Status.IDLE ? `(${simState.m.timer.toFixed(1)}s)` : ''}
+                        <div className="bg-gray-200 p-4 rounded-lg" ref={elementRefs.a2OutArea}>
+                            <div className="bg-orange-800 text-white font-bold text-center py-2 rounded-md mb-2">A2-OUT</div>
+                            <div className="text-center text-sm text-gray-700">Empty (for M)</div>
+                            <div className="flex items-center justify-center flex-wrap gap-2 p-2 min-h-[100px]">
+                                {[...Array(Math.max(0, loc.a2Out.emptyA2))].map((_,i) => <ContainerVisual key={`a2o-${i}`} type="A2" empty withWKanban />)}
                             </div>
+                        </div>
+                        {/* A2 Finished Pieces */}
+                        <div className="bg-orange-100 p-3 rounded-lg border-2 border-orange-400">
+                            <div className="text-center font-bold text-orange-800 mb-1 text-sm">A2 Finished</div>
+                            <div className="flex items-center justify-center gap-1 flex-wrap min-h-[80px]">
+                                {[...Array(Math.min(stats.throughputA2, 8))].map((_, i) => (
+                                    <div key={`fa2-${i}`} className="text-2xl">⚙️</div>
+                                ))}
+                                {stats.throughputA2 > 8 && (
+                                    <div className="text-base font-bold text-orange-800">+{stats.throughputA2 - 8}</div>
+                                )}
+                            </div>
+                            <div className="text-center text-xs font-semibold text-orange-800 mt-1">Total: {stats.throughputA2}</div>
                         </div>
                     </div>
                 </div>
