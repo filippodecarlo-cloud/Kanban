@@ -60,7 +60,7 @@ const ContainerVisual: React.FC<{ type: 'A1' | 'A2'; empty?: boolean; withWKanba
 
 const PieceIcon: React.FC<{ type: 'A1' | 'A2' }> = ({ type }) => {
     const icon = type === 'A1' ? '📦' : '⚙️';
-    return <div className="text-4xl">{icon}</div>;
+    return <div className="text-2xl">{icon}</div>;
 };
 
 const StorageArea: React.FC<{ title: string; subtitle: string; count: number; maxCapacity?: number; children: React.ReactNode; headerColor: string }> = ({ title, subtitle, count, maxCapacity = 10, children, headerColor }) => {
@@ -117,7 +117,7 @@ const Operator: React.FC<{ name: string; state: any; type: 'P' | 'A' | 'M'; hide
 
     switch (type) {
         case 'P':
-            sizeClasses = 'w-20 h-20 text-3xl';
+            sizeClasses = 'w-20 h-20 text-2xl';
             colorClasses = 'bg-gradient-to-br from-blue-400 to-blue-500';
             if (state.status === 'Working') {
                 statusClasses = 'bg-gradient-to-br from-blue-600 to-blue-700 shadow-xl';
@@ -127,28 +127,28 @@ const Operator: React.FC<{ name: string; state: any; type: 'P' | 'A' | 'M'; hide
                     <div className="relative">
                         <div className="text-2xl animate-bounce-subtle">👨‍🔧</div>
                         <div className="absolute inset-0 flex items-center justify-center pt-8">
-                            <div className="text-xl opacity-90">{productIcon}</div>
+                            <div className="text-2xl opacity-90">{productIcon}</div>
                         </div>
                     </div>
                 );
             } else if (state.status === 'Preparing') {
                 statusClasses = 'bg-gradient-to-br from-yellow-400 to-yellow-500 shadow-xl';
-                content = <div className="text-3xl animate-pulse">👨‍🔧</div>;
+                content = <div className="text-2xl animate-pulse">👨‍🔧</div>;
             } else {
-                content = <div className="text-3xl opacity-70">👨‍🔧</div>;
+                content = <div className="text-2xl opacity-70">👨‍🔧</div>;
             }
             break;
         case 'A':
-            sizeClasses = 'w-16 h-16 text-2xl';
+            sizeClasses = 'w-20 h-20 text-2xl';
             colorClasses = name === 'A1' ? 'bg-gradient-to-br from-red-500 to-red-600' : 'bg-gradient-to-br from-orange-500 to-orange-600';
             if (state.status === 'Working') {
                 statusClasses = 'shadow-xl ring-4 ring-green-300';
                 const productIcon = name === 'A1' ? '📦' : '⚙️';
                 content = (
                     <div className="relative">
-                        <div className="text-xl animate-bounce-subtle">👷</div>
-                        <div className="absolute inset-0 flex items-center justify-center pt-6">
-                            <div className="text-lg opacity-90">{productIcon}</div>
+                        <div className="text-2xl animate-bounce-subtle">👷</div>
+                        <div className="absolute inset-0 flex items-center justify-center pt-8">
+                            <div className="text-2xl opacity-90">{productIcon}</div>
                         </div>
                         <div className="absolute -right-1 -bottom-1 text-xs animate-pulse">🔧</div>
                     </div>
@@ -662,7 +662,7 @@ export default function App() {
                 const toPos = getPosition(elementRefs.a1FinishedArea.current);
                 const durationMs = Math.max(500 / timeMultiplier, 100);
 
-                setFinishedA1Mover({ visible: true, x: fromPos.x, y: fromPos.y, isTransitioning: false, content: <div className="text-4xl">📦</div> });
+                setFinishedA1Mover({ visible: true, x: fromPos.x, y: fromPos.y, isTransitioning: false, content: <div className="text-2xl">📦</div> });
                 requestAnimationFrame(() => {
                     setFinishedA1Mover(m => ({ ...m, x: toPos.x, y: toPos.y, isTransitioning: true }));
                     setTimeout(() => {
@@ -759,7 +759,7 @@ export default function App() {
                 const toPos = getPosition(elementRefs.a2FinishedArea.current);
                 const durationMs = Math.max(500 / timeMultiplier, 100);
 
-                setFinishedA2Mover({ visible: true, x: fromPos.x, y: fromPos.y, isTransitioning: false, content: <div className="text-4xl">⚙️</div> });
+                setFinishedA2Mover({ visible: true, x: fromPos.x, y: fromPos.y, isTransitioning: false, content: <div className="text-2xl">⚙️</div> });
                 requestAnimationFrame(() => {
                     setFinishedA2Mover(m => ({ ...m, x: toPos.x, y: toPos.y, isTransitioning: true }));
                     setTimeout(() => {
