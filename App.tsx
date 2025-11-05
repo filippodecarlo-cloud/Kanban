@@ -847,7 +847,7 @@ export default function App() {
                 const productType = newState.p.producingType!;
                 newState.p.status = 'Delivering';
 
-                setIsAnimating(true);
+                // Animation is non-blocking - simulation continues while P delivers
                 setSimState(newState);
                 setStats(newStats);
 
@@ -878,7 +878,7 @@ export default function App() {
 
                         setTimeout(() => {
                             setPMover(p => ({ ...p, visible: false, isTransitioning: false }));
-                            setIsAnimating(false);
+                            // Simulation continues - no setIsAnimating(false)
                             setSimState(s => {
                                 if (!s) return null;
                                 const newS = JSON.parse(JSON.stringify(s)) as SimulationState;
