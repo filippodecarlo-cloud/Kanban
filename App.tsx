@@ -253,14 +253,14 @@ type HistoryEntry = {
 
 // Challenge presets
 const CHALLENGES = [
-    { id: 0, name: 'Free Simulation', description: 'Customize parameters and explore the system freely', config: INITIAL_CONFIG },
-    { id: 1, name: 'Challenge 1: The Bottleneck', description: 'Find the bottleneck! Why are stations starved? Config: Fast A1/A2 (10s), Slow P (30s), 2 Kanban pairs', config: { cycleTimeA1: 10, cycleTimeA2: 10, cycleTimeP: 30, moveTimeM: 3, actionTimeM: 1, numKanbanPairsA1: 2, numKanbanPairsA2: 2 } },
-    { id: 2, name: 'Challenge 2: Stressed Mizusumashi', description: 'M is always moving! Observe WIP accumulation. Config: All stations fast (5s), M slow (10s)', config: { cycleTimeA1: 5, cycleTimeA2: 5, cycleTimeP: 5, moveTimeM: 10, actionTimeM: 1, numKanbanPairsA1: 2, numKanbanPairsA2: 2 } },
-    { id: 3, name: 'Challenge 3: Minimum WIP, Maximum Throughput', description: 'Find minimum Kanban pairs that keep stations working without starvation', config: { cycleTimeA1: 20, cycleTimeA2: 24, cycleTimeP: 15, moveTimeM: 3, actionTimeM: 1, numKanbanPairsA1: 1, numKanbanPairsA2: 1 } },
-    { id: 4, name: 'Challenge 4: Balanced Times', description: 'Adjust cycle times to achieve >90% saturation on all stations with 2 Kanban pairs', config: { cycleTimeA1: 20, cycleTimeA2: 24, cycleTimeP: 8, moveTimeM: 3, actionTimeM: 1, numKanbanPairsA1: 2, numKanbanPairsA2: 2 } },
-    { id: 5, name: 'Challenge 5: Product Mix', description: 'A2 is 3x slower than A1! How to balance Kanban pairs? Which ratio optimizes throughput?', config: { cycleTimeA1: 10, cycleTimeA2: 30, cycleTimeP: 15, moveTimeM: 3, actionTimeM: 1, numKanbanPairsA1: 2, numKanbanPairsA2: 2 } },
-    { id: 6, name: 'Challenge 6: Quick Response', description: 'Minimize Lead Time. How fast can you complete an order with 1 Kanban pair?', config: { cycleTimeA1: 8, cycleTimeA2: 10, cycleTimeP: 6, moveTimeM: 2, actionTimeM: 1, numKanbanPairsA1: 1, numKanbanPairsA2: 1 } },
-    { id: 7, name: 'Challenge 7: Kaizen', description: 'Start with 3 Kanban pairs. Reduce WIP progressively. When does the system collapse?', config: { cycleTimeA1: 30, cycleTimeA2: 30, cycleTimeP: 30, moveTimeM: 3, actionTimeM: 1, numKanbanPairsA1: 3, numKanbanPairsA2: 3 } },
+    { id: 0, name: 'Free Simulation', description: 'Customize parameters and explore the system freely', config: INITIAL_CONFIG, observe: "Change the parameters and watch how WIP, saturation and throughput respond. Try fewer cards, a slower station, a slower mizusumashi." },
+    { id: 1, name: 'Challenge 1: The Bottleneck', description: 'Find the bottleneck! Why are stations starved? Config: Fast A1/A2 (10s), Slow P (30s), 2 Kanban pairs', config: { cycleTimeA1: 10, cycleTimeA2: 10, cycleTimeP: 30, moveTimeM: 3, actionTimeM: 1, numKanbanPairsA1: 2, numKanbanPairsA2: 2 }, observe: "Look at the saturation of each station: P works almost all the time and A1 and A2 wait for containers. The slowest process sets the pace of the whole system: adding kanban cards does not help." },
+    { id: 2, name: 'Challenge 2: Stressed Mizusumashi', description: 'M is always moving! Observe WIP accumulation. Config: All stations fast (5s), M slow (10s)', config: { cycleTimeA1: 5, cycleTimeA2: 5, cycleTimeP: 5, moveTimeM: 10, actionTimeM: 1, numKanbanPairsA1: 2, numKanbanPairsA2: 2 }, observe: "The mizusumashi M is the limit: stations are fast but wait for the deliveries. More kanban cards only add WIP and waiting, not output. Shorten M's route or reduce the batch of tasks." },
+    { id: 3, name: 'Challenge 3: Minimum WIP, Maximum Throughput', description: 'Find minimum Kanban pairs that keep stations working without starvation', config: { cycleTimeA1: 20, cycleTimeA2: 24, cycleTimeP: 15, moveTimeM: 3, actionTimeM: 1, numKanbanPairsA1: 1, numKanbanPairsA2: 1 }, observe: "Reduce the pairs one at a time and watch the saturation: with too few cards the stations starve, with too many the WIP grows without more output. Keep the lowest number that still holds the saturation above 90%.", goal: 'sat90ab' },
+    { id: 4, name: 'Challenge 4: Balanced Times', description: 'Adjust cycle times to achieve >90% saturation on all stations with 2 Kanban pairs', config: { cycleTimeA1: 20, cycleTimeA2: 24, cycleTimeP: 8, moveTimeM: 3, actionTimeM: 1, numKanbanPairsA1: 2, numKanbanPairsA2: 2 }, observe: "Saturation of a station is its working time over the total time. To balance, bring the cycle times close to each other, so no station waits for another. Goal: more than 90% on A1, A2 and P.", goal: 'sat90abp' },
+    { id: 5, name: 'Challenge 5: Product Mix', description: 'A2 is 3x slower than A1! How to balance Kanban pairs? Which ratio optimizes throughput?', config: { cycleTimeA1: 10, cycleTimeA2: 30, cycleTimeP: 15, moveTimeM: 3, actionTimeM: 1, numKanbanPairsA1: 2, numKanbanPairsA2: 2 }, observe: "The slower product needs more cards to keep its station busy, but cards beyond that only add WIP. Compare the throughput and the saturation of A1 and A2 for different ratios of pairs." },
+    { id: 6, name: 'Challenge 6: Quick Response', description: 'Minimize Lead Time. How fast can you complete an order with 1 Kanban pair?', config: { cycleTimeA1: 8, cycleTimeA2: 10, cycleTimeP: 6, moveTimeM: 2, actionTimeM: 1, numKanbanPairsA1: 1, numKanbanPairsA2: 1 }, observe: "Lead time is the time to complete an order. With one pair there is no waiting queue: shorten the cycle times and the movements of M to reduce it." },
+    { id: 7, name: 'Challenge 7: Kaizen', description: 'Start with 3 Kanban pairs. Reduce WIP progressively. When does the system collapse?', config: { cycleTimeA1: 30, cycleTimeA2: 30, cycleTimeP: 30, moveTimeM: 3, actionTimeM: 1, numKanbanPairsA1: 3, numKanbanPairsA2: 3 }, observe: "Remove one pair at a time. WIP falls and at first nothing changes; then the stations starve: the problems that the cards were hiding (the rocks) become visible. This is the logic of kaizen: lower the stock, fix the problem, lower again." },
 ];
 
 export default function App() {
@@ -273,6 +273,7 @@ export default function App() {
     const [isAnimating, setIsAnimating] = useState(false);
     const [timeMultiplier, setTimeMultiplier] = useState(5);
     const [needsReset, setNeedsReset] = useState(false);
+    const [showObserve, setShowObserve] = useState(false);
     
     const [mizuMover, setMizuMover] = useState<MizuMoverState>({ x: 0, y: 0, isTransitioning: false });
     const [itemMover, setItemMover] = useState<MovingElement>({ visible: false, x: 0, y: 0, isTransitioning: false, content: null });
@@ -361,10 +362,12 @@ export default function App() {
     const handleConfigChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { id, value, type } = e.target;
         const numericValue = type === 'number' ? parseFloat(value) : value;
-        setConfig(prev => ({ ...prev, [id]: numericValue }));
+        const newConfig = { ...config, [id]: numericValue } as Config;
+        setConfig(newConfig);
         if (isRunning) {
+            // Restart automatically with the new configuration instead of asking for a manual reset
             setIsRunning(false);
-            setNeedsReset(true); // Only set needsReset if was running
+            resetState(newConfig);
         }
         // If paused, allow config changes without requiring reset
     };
@@ -386,7 +389,8 @@ export default function App() {
         if (challenge) {
             setSelectedChallenge(challengeId);
             setConfig(challenge.config);
-            setNeedsReset(true);
+            setShowObserve(false);
+            resetState(challenge.config);
         }
     };
 
@@ -1291,6 +1295,19 @@ export default function App() {
     const saturationPercA1 = simTime > 0 ? (stats.workingTimeA1 / simTime * 100).toFixed(1) : "0.0";
     const saturationPercA2 = simTime > 0 ? (stats.workingTimeA2 / simTime * 100).toFixed(1) : "0.0";
     const saturationPercP = simTime > 0 ? (stats.workingTimeP / simTime * 100).toFixed(1) : "0.0";
+    const challengeGoal = (CHALLENGES[selectedChallenge] as { goal?: string }).goal;
+    const goalStatus = (() => {
+        if (!challengeGoal) return null;
+        if (simTime < 60) return { reached: false, text: 'Run at least 60 s of simulated time to evaluate the goal.' };
+        const a1 = parseFloat(saturationPercA1), a2 = parseFloat(saturationPercA2), p = parseFloat(saturationPercP);
+        const pairs = config.numKanbanPairsA1 + config.numKanbanPairsA2;
+        const all = challengeGoal === 'sat90abp' ? [a1, a2, p] : [a1, a2];
+        const reached = all.every(v => v > 90);
+        const label = challengeGoal === 'sat90abp' ? 'A1, A2 and P' : 'A1 and A2';
+        return reached
+            ? { reached, text: `Goal reached: ${label} above 90% saturation with ${pairs} kanban pairs in total.` }
+            : { reached, text: `Not yet: ${label} must all be above 90% (now A1 ${a1}%, A2 ${a2}%${challengeGoal === 'sat90abp' ? `, P ${p}%` : ''}; ${pairs} pairs).` };
+    })();
 
     const simTimeMinutes = simTime / 60;
     const rateA1 = simTimeMinutes > 0 ? (stats.throughputA1 / simTimeMinutes).toFixed(1) : "0.0";
@@ -1468,7 +1485,7 @@ export default function App() {
                             <div className="text-xs text-gray-600 mb-1">Speed Multiplier</div>
                             <input type="range" min="1" max="20" value={timeMultiplier} onChange={e => setTimeMultiplier(Number(e.target.value))} className="w-full" />
                         </div>
-                        <div className="mt-2 bg-indigo-50 border border-indigo-200 text-indigo-800 p-2 rounded-lg text-sm"><span className="font-semibold">Status:</span> {needsReset ? "Config changed. Press Reset." : (isRunning ? "Running..." : "Paused")}</div>
+                        <div className="mt-2 bg-indigo-50 border border-indigo-200 text-indigo-800 p-2 rounded-lg text-sm"><span className="font-semibold">Status:</span> {needsReset ? "Config changed. Press Reset." : (isRunning ? "Running..." : (simTime === 0 ? "Ready: press Start" : "Paused"))}</div>
                     </div>
 
                     {/* Configuration */}
@@ -1511,6 +1528,17 @@ export default function App() {
                                 <p className="text-xs text-indigo-900">
                                     <span className="font-bold">Goal:</span> {CHALLENGES[selectedChallenge].description}
                                 </p>
+                                {goalStatus && (
+                                    <p className={`mt-2 text-xs font-semibold ${goalStatus.reached ? 'text-green-700' : 'text-amber-700'}`}>
+                                        {goalStatus.reached ? '✓ ' : '• '}{goalStatus.text}
+                                    </p>
+                                )}
+                                <button onClick={() => setShowObserve(v => !v)} className="mt-2 text-xs font-semibold text-indigo-700 underline">
+                                    {showObserve ? 'Hide hint' : 'Show hint: what to observe'}
+                                </button>
+                                {showObserve && (
+                                    <p className="mt-1 text-xs text-indigo-900">{CHALLENGES[selectedChallenge].observe}</p>
+                                )}
                             </div>
                         )}
                     </div>

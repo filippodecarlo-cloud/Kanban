@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kanban-sim-v1';
+const CACHE_NAME = 'kanban-sim-v2';
 const urlsToCache = [
   '/Kanban/',
   '/Kanban/index.html',
